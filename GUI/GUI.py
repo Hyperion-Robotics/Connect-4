@@ -44,7 +44,8 @@ class CenteredCanvasApp:
 
         self.print_board(self.gui_board)
 
-        self.animate_puck(self.canvas,1,1)
+        self.animate_puck(self.canvas,0,5)
+
 
         # self.draw_circle(self.canvas,540/2,350/2,30)
 
@@ -98,28 +99,6 @@ class CenteredCanvasApp:
         print(row,column)
         self.draw_circle(canvas,row,column,25,color)
 
-    def animate_puck(self, canvas, Y, X):
-        # Initial delay
-        delay = 500
-
-        pucks_to_animate=5-Y
-
-        for 
-
-        # Draw the first puck
-        self.draw_puck(canvas, 5, 0)
-        
-        # Schedule the puck movements sequentially
-        canvas.after(delay, lambda: self.draw_puck(canvas, 5, 0, "white"))
-        canvas.after(delay, lambda: self.draw_puck(canvas, 4, 0))
-        canvas.after(delay * 2, lambda: self.draw_puck(canvas, 4, 0, "white"))
-        canvas.after(delay * 2, lambda: self.draw_puck(canvas, 3, 0))
-        canvas.after(delay * 3, lambda: self.draw_puck(canvas, 3, 0, "white"))
-        canvas.after(delay * 3, lambda: self.draw_puck(canvas, 2, 0))
-        canvas.after(delay * 4, lambda: self.draw_puck(canvas, 2, 0, "white"))
-        canvas.after(delay * 4, lambda: self.draw_puck(canvas, 1, 0))
-        canvas.after(delay * 5, lambda: self.draw_puck(canvas, 1, 0, "white"))
-        canvas.after(delay * 5, lambda: self.draw_puck(canvas, 0, 0))
 
 
     def change_sides(self):
@@ -145,6 +124,53 @@ class CenteredCanvasApp:
             print("Exiting...")
         finally:
             ser.close()  # Make sure to close the port when done
+
+    #------------------------------------------------------------------ Animation start-----------------------------------------------------------#
+
+    def animate_puck(self, canvas, Y, X,color="purple"):
+        # Initial delay and setup
+        delay = 350
+        pucks_to_animate = 5 - Y
+        
+        # Define the sequence of animation steps
+        for i in range(pucks_to_animate):
+            current_row = 5 - i
+            next_row = 5 - (i + 1)
+
+            # Draw the current puck
+            canvas.after(delay * (i * 2), lambda row=current_row: self.draw_puck(canvas, row, X,color))
+
+            # Erase the current puck (set to "white") and draw the next puck
+            canvas.after(delay * (i * 2 + 1), lambda row=current_row, next_row=next_row: self.draw_puck(canvas, row, X, "white") or self.draw_puck(canvas, next_row, X,color))
+
+        # Final callback to return zero
+
+        print(X,Y)
+        if Y==0 and X==5: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,0,4,"blue"))
+        if Y==0 and X==4: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,1,4,"purple"))
+        if Y==1 and X==4: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,0,3,"blue"))
+        if Y==0 and X==3: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,1,3,"purple"))
+        if Y==1 and X==3: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,2,3,"blue"))
+        if Y==2 and X==3: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,2,4,"purple"))
+        if Y==2 and X==4: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,1,5,"blue"))
+        if Y==1 and X==5: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,0,6,"purple"))
+        if Y==0 and X==6: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,2,5,"blue"))
+        if Y==2 and X==5: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,0,2,"purple"))
+        if Y==0 and X==2: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,0,2,"purple"))
+
+
+
 
 if __name__ == "__main__":
     # Create the main window
