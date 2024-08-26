@@ -3,50 +3,52 @@ import threading
 import serial
 import time
 
-class CenteredCanvasApp:
+class Connect4:
     def __init__(self, root):
         self.root = root
         self.root.title("Connect 4")
-        # self.root.attributes("-fullscreen", True)
-        # self.root.attributes("-type", "splash")
         self.root.geometry("800x480")
         self.root.configure(bg="#4d4343")
 
-        Serial_thread = threading.Thread(target=self.read_Serial)
-        
-        self.board=[[0 for _ in range(6)]for l in range(7)]
-        self.gui_board=[[0 for _ in range(6)]for l in range(7)]
-        self.side="purple"
-        # self.print_board(self.board)
+        self.frame = tk.Frame(self.root, bg="#4d4343")
+        self.frame.grid(row=0, column=0, sticky="nsew")
 
-        # Serial_thread.setDaemon(True)
-        # Serial_thread.start()
+        # Configure the root grid to center the frame
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
 
+        self.board = [[0 for _ in range(6)] for l in range(7)]
+        self.gui_board = [[0 for _ in range(6)] for l in range(7)]
+        self.side = "purple"
 
+        # Create a canvas with a fixed size and place it in the second row, spanning 4 columns
+        self.canvas = tk.Canvas(self.frame, bg="orange", width=470, height=350)
+        self.canvas.grid(row=1, column=0, columnspan=4, padx=10, pady=0)
 
-        # Create a canvas and place it in the middle of the window
-        self.canvas = tk.Canvas(self.root, bg="orange", width=470, height=350)
-        self.canvas.grid(row=1, column=1)
+        # Create 4 buttons and place them in the top row
+        label = tk.Label(self.frame, text="Hyperion Robotics Connect-4", bg="#a6a2a2", fg="white", font=('DejaVu Sans', 20),relief="raised")
+        button1 = tk.Button(self.frame, text="New Game", command=self.button_pressed, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 12),height=2)
+        button2 = tk.Button(self.frame, text="Load Game", command=self.button_pressed, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 12),height=2)
+        button3 = tk.Button(self.frame, text="Settings", command=self.button_pressed, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 12),height=2)
+        button4 = tk.Button(self.frame, text="Power", command=self.button_pressed, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 12),height=2)
 
-        width = self.canvas.winfo_width()
-        height = self.canvas.winfo_height()
-        print(f"Canvas size: {width}x{height} pixels")
+        label.grid(row=0, column=1, columnspan=2, padx=10, pady=5, sticky="ew")
+        button1.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+        button2.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+        button3.grid(row=2, column=2, padx=10, pady=5, sticky="ew")
+        button4.grid(row=2, column=3, padx=10, pady=5, sticky="ew")
 
-        
         self.draw_play_area(self.canvas)
-
         self.print_board(self.gui_board)
-
         self.animate_puck(self.canvas,0,5)
 
-
-        # self.draw_circle(self.canvas,540/2,350/2,30)
-
-        # Configure the grid layout
-        self.root.grid_rowconfigure(0, weight=1)
-        self.root.grid_rowconfigure(2, weight=1)
-        self.root.grid_columnconfigure(0, weight=1)
-        self.root.grid_columnconfigure(2, weight=1)
+        # Configure the grid layout within the frame to center content
+        self.frame.grid_rowconfigure(0, weight=1)  # Row for buttons
+        self.frame.grid_rowconfigure(1, weight=1)  # Row for the canvas (fixed size, no expansion)
+        self.frame.grid_columnconfigure(0, weight=1)  # Columns for buttons and canvas
+        self.frame.grid_columnconfigure(1, weight=1)
+        self.frame.grid_columnconfigure(2, weight=1)
+        self.frame.grid_columnconfigure(3, weight=1)
 
     def draw_play_area(self,canvas):
         currentXY=(40,40)
@@ -110,6 +112,9 @@ class CenteredCanvasApp:
             self.side="blue"
         elif self.side=="blue":
             self.side="purple"
+
+    def button_pressed(self):
+        print("button pressed")
 
     def read_Serial(self):
         ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=1)
@@ -212,7 +217,7 @@ if __name__ == "__main__":
     root = tk.Tk()
 
     # Create an instance of the app
-    app = CenteredCanvasApp(root)
+    app = Connect4(root)
 
     # Start the main event loop
     root.mainloop()
