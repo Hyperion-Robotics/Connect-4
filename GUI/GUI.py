@@ -32,15 +32,8 @@ class CenteredCanvasApp:
         height = self.canvas.winfo_height()
         print(f"Canvas size: {width}x{height} pixels")
 
-        currentXY=(40,40)
-        for j in range(6):
-            for i in range(7):
-                self.gui_board[i][j]=currentXY
-                self.draw_circle(self.canvas,currentXY[0],currentXY[1],25,"white")
-                currentXY=currentXY[0]+65,currentXY[1]
-                print(currentXY)
-                
-            currentXY=currentXY=40,currentXY[1]+55
+        
+        self.draw_play_area(self.canvas)
 
         self.print_board(self.gui_board)
 
@@ -54,6 +47,17 @@ class CenteredCanvasApp:
         self.root.grid_rowconfigure(2, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_columnconfigure(2, weight=1)
+
+    def draw_play_area(self,canvas):
+        currentXY=(40,40)
+        for j in range(6):
+            for i in range(7):
+                self.gui_board[i][j]=currentXY
+                self.draw_circle(canvas,currentXY[0],currentXY[1],25,"white")
+                currentXY=currentXY[0]+65,currentXY[1]
+                print(currentXY)
+                
+            currentXY=currentXY=40,currentXY[1]+55
 
 
     def draw_circle(self,canvas, x, y, radius,color):
@@ -129,7 +133,7 @@ class CenteredCanvasApp:
 
     def animate_puck(self, canvas, Y, X,color="purple"):
         # Initial delay and setup
-        delay = 350
+        delay = 150
         pucks_to_animate = 5 - Y
         
         # Define the sequence of animation steps
@@ -143,9 +147,8 @@ class CenteredCanvasApp:
             # Erase the current puck (set to "white") and draw the next puck
             canvas.after(delay * (i * 2 + 1), lambda row=current_row, next_row=next_row: self.draw_puck(canvas, row, X, "white") or self.draw_puck(canvas, next_row, X,color))
 
-        # Final callback to return zero
+        # print(X,Y)
 
-        print(X,Y)
         if Y==0 and X==5: 
             canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,0,4,"blue"))
         if Y==0 and X==4: 
@@ -167,9 +170,41 @@ class CenteredCanvasApp:
         if Y==2 and X==5: 
             canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,0,2,"purple"))
         if Y==0 and X==2: 
-            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,0,2,"purple"))
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,1,6,"blue"))
+        if Y==1 and X==6: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animate_puck(canvas,3,5,"purple"))
+        if Y==3 and X==5: 
+            canvas.after(delay * (pucks_to_animate * 2), lambda: self.animation_end(canvas,1))
 
+    def animation_end(self, canvas, scene, flash_count=0):
+        delay = 200
+        max_flashes = 6  # 6 flashes correspond to 3 complete color changes
 
+        # Determine the current color based on the flash count
+        if flash_count < max_flashes:
+            if flash_count % 2 == 0:
+                color = "yellow"
+            else:
+                color = "purple"
+
+            # Flash the four pucks with the current color
+            self.draw_puck(canvas, 0, 2, color)
+            self.draw_puck(canvas, 1, 3, color)
+            self.draw_puck(canvas, 2, 4, color)
+            self.draw_puck(canvas, 3, 5, color)
+
+            # Schedule the next flash
+            canvas.after(delay, lambda: self.animation_end(canvas, scene, flash_count + 1))
+        else:
+            # Ensure the last color is yellow
+            self.draw_puck(canvas, 0, 2, "yellow")
+            self.draw_puck(canvas, 1, 3, "yellow")
+            self.draw_puck(canvas, 2, 4, "yellow")
+            self.draw_puck(canvas, 3, 5, "yellow")
+
+            print("Animation sequence completed.")
+            # Call draw_play_area after 500 ms
+            canvas.after(500, lambda: self.draw_play_area(canvas))
 
 
 if __name__ == "__main__":
