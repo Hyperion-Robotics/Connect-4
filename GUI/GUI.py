@@ -3,6 +3,8 @@ import threading
 import serial
 import time
 import json
+from tkinter import filedialog
+
 
 class Connect4:
     def __init__(self, root):
@@ -54,7 +56,21 @@ class Connect4:
 
         self.draw_play_area(self.canvas)
         self.print_board(self.gui_board)
-        self.animation(self.canvas, 0, 4)
+        # self.animation(self.canvas, 0, 4)
+
+        self.add_puck_to_column(self.board,1)
+        self.change_sides()
+        self.add_puck_to_column(self.board,1)
+        self.change_sides()
+        self.add_puck_to_column(self.board,1)
+        self.change_sides()
+        self.add_puck_to_column(self.board,1)
+        self.change_sides()
+        self.add_puck_to_column(self.board,2)
+        self.change_sides()
+        self.add_puck_to_column(self.board,5)
+        self.print_board(self.board)
+        self.save_game(self.board)
 
         # Configure the grid layout within the frame to center content
         self.frame.grid_rowconfigure(0, weight=1)  # Row for the label
@@ -71,7 +87,7 @@ class Connect4:
 
         # Create the buttons and arrange them vertically
         button1 = tk.Button(self.frame, text="New Game", command=self.create_game_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
-        button2 = tk.Button(self.frame, text="Load Game", command=self.button_pressed, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20,  height=3)
+        button2 = tk.Button(self.frame, text="Load Game", command=self.open_file_dialog, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20,  height=3)
         button3 = tk.Button(self.frame, text="Back", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
 
         # Place the buttons in separate rows without expanding to fill the row
@@ -95,7 +111,7 @@ class Connect4:
 
         # Create the label and 4 buttons and place them in the top row
         button1 = tk.Button(self.frame, text="Save and Quit", command=self.create_play_menu, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 18),width=20, pady=5)
-        button2 = tk.Button(self.frame, text="Quit", command=self.button_pressed, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 18),width=20, pady=5)
+        button2 = tk.Button(self.frame, text="Quit", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 18),width=20, pady=5)
  
 
         button1.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
@@ -125,10 +141,10 @@ class Connect4:
         button3 = tk.Button(self.frame, text=self.settingName[2], command=lambda: self.toggleSetting(3), bg=self.side, fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         
         # Fixing the command functions for the buttons
-        button4 = tk.Button(self.frame, text="Test IR Gates", command=self.button_pressed, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
-        button5 = tk.Button(self.frame, text="Test Arm\nPositions", command=self.create_game_frame, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
-        button6 = tk.Button(self.frame, text="Toggle\nPumps", command=self.button_pressed, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
-        button7 = tk.Button(self.frame, text="Power", command=self.create_main_frame, bg="red", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button4 = tk.Button(self.frame, text="Test IR Gates", command=self.create_ir_test_menu, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button5 = tk.Button(self.frame, text="Test Arm\nPositions", command=self.create_arm_menu, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button6 = tk.Button(self.frame, text="Toggle\nPumps", command=self.toggle_pumps, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button7 = tk.Button(self.frame, text="Power", command=self.create_power_menu, bg="red", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         button8 = tk.Button(self.frame, text="Back", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
 
         # Place the buttons in separate rows without expanding to fill the row
@@ -148,6 +164,89 @@ class Connect4:
         self.frame.grid_rowconfigure(3, weight=1)  # Row for the fourth button
         self.frame.grid_columnconfigure(0, weight=1)  # First column for buttons
         self.frame.grid_columnconfigure(1, weight=1)  # Second column for buttons
+
+    def create_power_menu(self):
+        self.clear_frame()
+        self.current_frame = "power_menu"
+
+        # Create the buttons and arrange them vertically
+        button1 = tk.Button(self.frame, text="Reboot", command=self.button_pressed, bg="yellow", fg="black", font=('DejaVu Sans', 30), width=20, height=3)
+        button2 = tk.Button(self.frame, text="Shutdown", command=self.button_pressed, bg="red", fg="white", font=('DejaVu Sans', 30), width=20,  height=3)
+        button3 = tk.Button(self.frame, text="Quit", command=self.button_pressed, bg="blue", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button4 = tk.Button(self.frame, text="Back", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+
+        # Place the buttons in separate rows without expanding to fill the row
+        button1.grid(row=0, column=0, padx=10, pady=10)
+        button2.grid(row=1, column=0, padx=10, pady=10)  
+        button3.grid(row=0, column=1, padx=10, pady=10)  
+        button4.grid(row=1, column=1, padx=10, pady=10)  
+
+        # Configure the grid layout within the frame to center content
+        self.frame.grid_rowconfigure(0, weight=1)  # Row for the first button
+        self.frame.grid_rowconfigure(1, weight=1)  # Row for the second button
+        self.frame.grid_columnconfigure(0, weight=1)  # Single column for buttons
+        self.frame.grid_columnconfigure(1, weight=1)  # Single column for buttons
+
+    def create_arm_menu(self):
+        self.clear_frame()
+        self.current_frame = "arm_menu"
+
+        # Create the buttons and arrange them vertically
+        button1 = tk.Button(self.frame, text="Home", command=lambda: self.move_arm(1), bg="yellow", fg="black", font=('DejaVu Sans', 30), width=20, height=3)
+        button2 = tk.Button(self.frame, text="Middle", command=lambda: self.move_arm(2), bg="yellow", fg="black", font=('DejaVu Sans', 30), width=20,  height=3)
+        button3 = tk.Button(self.frame, text="Gameboard\nnear", command=lambda: self.move_arm(3), bg="yellow", fg="black", font=('DejaVu Sans', 30), width=20, height=3)
+        button4 = tk.Button(self.frame, text="Gameboard\nfar", command=lambda: self.move_arm(4), bg="yellow", fg="black", font=('DejaVu Sans', 30), width=20, height=3)
+        button5 = tk.Button(self.frame, text="Puck Row\nLeft", command=lambda: self.move_arm(5), bg="yellow", fg="black", font=('DejaVu Sans', 30), width=20, height=3)
+        button6 = tk.Button(self.frame, text="Puck Row\nMiddle", command=lambda: self.move_arm(6), bg="yellow", fg="black", font=('DejaVu Sans', 30), width=20,  height=3)
+        button7 = tk.Button(self.frame, text="Puck Row\nRight", command=lambda: self.move_arm(7), bg="yellow", fg="black", font=('DejaVu Sans', 30), width=20, height=3)
+        button8 = tk.Button(self.frame, text="Back", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+
+        # Place the buttons in separate rows without expanding to fill the row
+        button1.grid(row=0, column=0, padx=10, pady=10)
+        button2.grid(row=1, column=0, padx=10, pady=10)  
+        button3.grid(row=2, column=0, padx=10, pady=10)  
+        button4.grid(row=3, column=0, padx=10, pady=10)  
+        button5.grid(row=0, column=1, padx=10, pady=10)
+        button6.grid(row=1, column=1, padx=10, pady=10)  
+        button7.grid(row=2, column=1, padx=10, pady=10)  
+        button8.grid(row=3, column=1, padx=10, pady=10) 
+
+        # Configure the grid layout within the frame to center content
+        self.frame.grid_rowconfigure(0, weight=1)  # Row for the first button
+        self.frame.grid_rowconfigure(1, weight=1)  # Row for the second button
+        self.frame.grid_rowconfigure(2, weight=1)  # Row for the first button
+        self.frame.grid_rowconfigure(3, weight=1)  # Row for the second button
+        self.frame.grid_columnconfigure(0, weight=1)  # Single column for buttons
+        self.frame.grid_columnconfigure(1, weight=1)  # Single column for buttons
+
+
+    def create_ir_test_menu(self):
+        self.clear_frame()
+        self.current_frame="ir_menu"
+
+        # Create a canvas with a fixed size and place it in the second row, spanning 4 columns
+        self.canvas = tk.Canvas(self.frame, bg="orange", width=470, height=350)
+        self.canvas.grid(row=1, column=0, columnspan=4, padx=10, pady=0)
+
+        # Create the label and 4 buttons and place them in the top row
+        label = tk.Label(self.frame, text="IR Gate Test", bg="#a6a2a2", fg="white", font=('Franklin Gothic Medium', 24),relief="raised",pady=10, width=35)
+        button1 = tk.Button(self.frame, text="Back", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 18),width=20, pady=5)
+ 
+
+        label.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        button1.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+   
+
+        self.draw_play_area(self.canvas)
+        self.print_board(self.gui_board)
+
+        # Configure the grid layout within the frame to center content
+        self.frame.grid_rowconfigure(0, weight=1)  # Row for the label
+        self.frame.grid_rowconfigure(1, weight=1)  # Row for the canvas (fixed size, no expansion)
+        self.frame.grid_rowconfigure(2, weight=1)  # Row for buttons
+        self.frame.grid_columnconfigure(0, weight=1)  # Columns for buttons and canvas
+        self.frame.grid_columnconfigure(1, weight=1)
+        self.frame.grid_columnconfigure(2, weight=1)
 
     #------------------------------------------------------------------ Back end functions-----------------------------------------------------------#
 
@@ -217,7 +316,10 @@ class Connect4:
                 break
         x=gate-1        
         y=empty_row
-        gameboard[x][y]=1
+        if self.side=="purple":
+            gameboard[x][y]="P"
+        if self.side=="blue":
+            gameboard[x][y]="B"
         self.draw_puck(self.canvas,y,x)
 
 
@@ -243,6 +345,11 @@ class Connect4:
     def button_pressed(self):  #  For testing buttons
         print("button pressed")
 
+    def toggle_pumps(self):  #  For testing buttons
+        print("Pumps toggled")
+
+    def move_arm(self, stance):
+        print("Arm moved at pos "+str(stance))
 
     def toggleSetting(self,setting):
 
@@ -261,7 +368,6 @@ class Connect4:
             self.side="blue"
 
         self.saveSettings()     #Saves the setting change to the settings JSON file 
-
         self.create_settings_frame()
 
     def UpdateFromJSON(self):
@@ -293,6 +399,65 @@ class Connect4:
 
         with open(r"C:\Users\gkkti\Documents\Python\settings.json", 'w') as file:
             json.dump(settings, file, indent=2)
+
+    def open_file_dialog(self):
+        # Open a file dialog that only allows selection of .txt files
+        file_path = filedialog.askopenfilename(
+            title="Select a Text File",
+            filetypes=[("Text Files", "*.txt")]  # Only .txt files will be displayed
+        )
+        
+        if file_path:
+            print(f"Selected file: {file_path}")
+            
+            # Open the file in read mode and read its content
+            with open(file_path, 'r') as file:
+                content = file.read()
+                print(f"File content:\n{content}")
+                self.string_to_board(content)
+
+    def save_game(self,gameboard):
+        save=self.board_to_string(self.board)
+        # for i in range(6):
+        #     save=+gameboard[i]
+        print(save)
+        with open("game.txt", "w") as file:
+            file.write(save)
+
+    def board_to_string(self, board):
+        # Initialize an empty string to accumulate the result
+        result = ''
+        
+        # Get the number of rows and columns
+        num_rows = len(board)
+        num_cols = len(board[0])
+        
+        # Iterate over columns (each index corresponds to the position in the row)
+        for col in range(num_cols):
+            # For each column, iterate over rows from bottom to top
+            for row in (range(num_rows)):
+                result += str(board[row][col])
+        
+        return result
+    
+    def string_to_board(self, string):
+        # Get the number of rows and columns from the existing self.board
+        num_rows = len(self.board)
+        num_cols = len(self.board[0])
+        
+        # Initialize the board as an empty 2D list
+        board = [[0 for _ in range(num_cols)] for _ in range(num_rows)]
+        
+        # Fill the board row by row
+        index = 0
+        for col in range(num_cols):
+            for row in range(num_rows):
+                board[row][col] = string[index]
+                index += 1
+
+        self.print_board(board)
+                
+        return board
 
     def read_Serial(self):
         ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=1)
