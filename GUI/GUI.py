@@ -1,7 +1,7 @@
 import tkinter as tk
 import threading
 import serial
-import time
+from datetime import datetime
 import json
 from tkinter import filedialog
 
@@ -37,6 +37,11 @@ class Connect4:
         self.clear_frame()
         self.current_frame="main"
 
+        # Clear the board every time a game is done to avoid stacking pucks when old games are loaded
+        # Could be removed after testing since normaly the create_main_function doesnt modify the self.board array
+        # But for the testing since it does modify it for testing purposed it is required atm 
+        self.board = [[0 for _ in range(6)] for l in range(7)] 
+
         print(self.current_frame)
 
         # Create a canvas with a fixed size and place it in the second row, spanning 4 columns
@@ -58,6 +63,64 @@ class Connect4:
         self.print_board(self.gui_board)
         # self.animation(self.canvas, 0, 4)
 
+
+
+        self.draw_play_area(self.canvas)
+        # self.print_board(self.gui_board)
+        self.animation(self.canvas, 0, 4)
+
+        # Configure the grid layout within the frame to center content
+        self.frame.grid_rowconfigure(0, weight=1)  # Row for the label
+        self.frame.grid_rowconfigure(1, weight=1)  # Row for the canvas (fixed size, no expansion)
+        self.frame.grid_rowconfigure(2, weight=1)  # Row for buttons
+        self.frame.grid_columnconfigure(0, weight=1)  # Columns for buttons and canvas
+        self.frame.grid_columnconfigure(1, weight=1)
+        self.frame.grid_columnconfigure(2, weight=1)
+        self.frame.grid_columnconfigure(3, weight=1)
+
+    def create_play_menu(self):
+        self.clear_frame()
+        self.current_frame = "play_menu"
+
+        # Create the buttons and arrange them vertically
+        button1 = tk.Button(self.frame, text="New Game", command=self.create_new_game_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button2 = tk.Button(self.frame, text="Load Game", command=self.open_file_dialog, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20,  height=3)
+        button3 = tk.Button(self.frame, text="Back", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+
+        # Place the buttons in separate rows without expanding to fill the row
+        button1.grid(row=0, column=0, padx=10, pady=10)  # Removed sticky="ew"
+        button2.grid(row=1, column=0, padx=10, pady=10)  # Removed sticky="ew"
+        button3.grid(row=2, column=0, padx=10, pady=10)  # Removed sticky="ew"
+
+        # Configure the grid layout within the frame to center content
+        self.frame.grid_rowconfigure(0, weight=1)  # Row for the first button
+        self.frame.grid_rowconfigure(1, weight=1)  # Row for the second button
+        self.frame.grid_rowconfigure(2, weight=1)  # Row for the third button
+        self.frame.grid_columnconfigure(0, weight=1)  # Single column for buttons
+
+    def create_new_game_frame(self):
+        self.timestamp = datetime.now().strftime('%d_%H_%M')
+        self.board=[[0 for _ in range(6)] for l in range(7)]
+        self.create_game_frame(self.board)
+
+    def create_game_frame(self,board):
+        self.clear_frame()
+        self.current_frame="game"
+
+        # Create a canvas with a fixed size and place it in the second row, spanning 4 columns
+        self.canvas = tk.Canvas(self.frame, bg="orange", width=470, height=350)
+        self.canvas.grid(row=1, column=0, columnspan=4, padx=10, pady=0)
+
+        # Create the label and 4 buttons and place them in the top row
+        button1 = tk.Button(self.frame, text="Save and Quit", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 18),width=20, pady=5)
+        
+        button1.grid(row=2, column=1, columnspan=2,padx=10, pady=5, sticky="ew")
+   
+        self.draw_play_area(self.canvas)
+        # self.print_board(self.gui_board)
+        self.draw_board_from_save(self.canvas,board)
+        
+        #All this here is for testing and the self.change_side function messes up the side because it swaps it every time the create_main_frame is called
         self.add_puck_to_column(self.board,1)
         self.change_sides()
         self.add_puck_to_column(self.board,1)
@@ -81,45 +144,27 @@ class Connect4:
         self.frame.grid_columnconfigure(2, weight=1)
         self.frame.grid_columnconfigure(3, weight=1)
 
-    def create_play_menu(self):
+    def create_confirm_loaded_game(self,board):
         self.clear_frame()
-        self.current_frame = "play_menu"
-
-        # Create the buttons and arrange them vertically
-        button1 = tk.Button(self.frame, text="New Game", command=self.create_game_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
-        button2 = tk.Button(self.frame, text="Load Game", command=self.open_file_dialog, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20,  height=3)
-        button3 = tk.Button(self.frame, text="Back", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
-
-        # Place the buttons in separate rows without expanding to fill the row
-        button1.grid(row=0, column=0, padx=10, pady=10)  # Removed sticky="ew"
-        button2.grid(row=1, column=0, padx=10, pady=10)  # Removed sticky="ew"
-        button3.grid(row=2, column=0, padx=10, pady=10)  # Removed sticky="ew"
-
-        # Configure the grid layout within the frame to center content
-        self.frame.grid_rowconfigure(0, weight=1)  # Row for the first button
-        self.frame.grid_rowconfigure(1, weight=1)  # Row for the second button
-        self.frame.grid_rowconfigure(2, weight=1)  # Row for the third button
-        self.frame.grid_columnconfigure(0, weight=1)  # Single column for buttons
-
-    def create_game_frame(self):
-        self.clear_frame()
-        self.current_frame="game"
+        self.current_frame="confirm_loaded_game"
 
         # Create a canvas with a fixed size and place it in the second row, spanning 4 columns
         self.canvas = tk.Canvas(self.frame, bg="orange", width=470, height=350)
         self.canvas.grid(row=1, column=0, columnspan=4, padx=10, pady=0)
 
         # Create the label and 4 buttons and place them in the top row
-        button1 = tk.Button(self.frame, text="Save and Quit", command=self.create_play_menu, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 18),width=20, pady=5)
-        button2 = tk.Button(self.frame, text="Quit", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 18),width=20, pady=5)
+        label = tk.Label(self.frame, text="Is this correct", bg="#a6a2a2", fg="white", font=('Franklin Gothic Medium', 24),relief="raised",pady=10, width=35)
+        button1 = tk.Button(self.frame, text="Confirm", command=lambda: self.create_game_frame(board), bg="#a6a2a2", fg="white", font=('DejaVu Sans', 18),width=20, pady=5)
+        button2 = tk.Button(self.frame, text="Back", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 18),width=20, pady=5)
  
-
+        label.grid(row=0, column=1,columnspan=2, padx=10, pady=5, sticky="ew")
         button1.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
         button2.grid(row=2, column=2, padx=10, pady=5, sticky="ew")
    
 
         self.draw_play_area(self.canvas)
-        self.print_board(self.gui_board)
+        # self.print_board(self.gui_board)
+        self.draw_board_from_save(self.canvas,board)
         # self.animation(self.canvas, 0, 4)
 
         # Configure the grid layout within the frame to center content
@@ -130,6 +175,9 @@ class Connect4:
         self.frame.grid_columnconfigure(1, weight=1)
         self.frame.grid_columnconfigure(2, weight=1)
         self.frame.grid_columnconfigure(3, weight=1)
+
+        
+
 
     def create_settings_frame(self):
         self.clear_frame()
@@ -170,9 +218,9 @@ class Connect4:
         self.current_frame = "power_menu"
 
         # Create the buttons and arrange them vertically
-        button1 = tk.Button(self.frame, text="Reboot", command=self.button_pressed, bg="yellow", fg="black", font=('DejaVu Sans', 30), width=20, height=3)
-        button2 = tk.Button(self.frame, text="Shutdown", command=self.button_pressed, bg="red", fg="white", font=('DejaVu Sans', 30), width=20,  height=3)
-        button3 = tk.Button(self.frame, text="Quit", command=self.button_pressed, bg="blue", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button1 = tk.Button(self.frame, text="Reboot", command=self.reboot, bg="yellow", fg="black", font=('DejaVu Sans', 30), width=20, height=3)
+        button2 = tk.Button(self.frame, text="Shutdown", command=self.shutdown, bg="red", fg="white", font=('DejaVu Sans', 30), width=20,  height=3)
+        button3 = tk.Button(self.frame, text="Quit", command=self.quit, bg="blue", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         button4 = tk.Button(self.frame, text="Back", command=self.create_main_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
 
         # Place the buttons in separate rows without expanding to fill the row
@@ -272,7 +320,7 @@ class Connect4:
                 self.gui_board[i][j]=currentXY
                 self.draw_circle(canvas,currentXY[0],currentXY[1],25,"white")
                 currentXY=currentXY[0]+65,currentXY[1]
-                print(currentXY)
+                # print(currentXY)
                 
             currentXY=currentXY=40,currentXY[1]+55
 
@@ -283,7 +331,7 @@ class Connect4:
                 self.gui_board[i][j]=currentXY
                 self.draw_circle(canvas,currentXY[0],currentXY[1],25,"white")
                 currentXY=currentXY[0]+65,currentXY[1]
-                print(currentXY)
+                # print(currentXY)
                 
             currentXY=currentXY=40,currentXY[1]+55
         
@@ -414,14 +462,17 @@ class Connect4:
             with open(file_path, 'r') as file:
                 content = file.read()
                 print(f"File content:\n{content}")
-                self.string_to_board(content)
+                loaded_board=self.string_to_board(content)
+                self.create_confirm_loaded_game(loaded_board)
 
     def save_game(self,gameboard):
         save=self.board_to_string(self.board)
         # for i in range(6):
         #     save=+gameboard[i]
-        print(save)
-        with open("game.txt", "w") as file:
+        
+        print(f"file to be saved: {save}")
+        filename=self.timestamp
+        with open(filename+".txt", "w") as file:
             file.write(save)
 
     def board_to_string(self, board):
@@ -458,6 +509,26 @@ class Connect4:
         self.print_board(board)
                 
         return board
+    
+    def draw_board_from_save(self,canvas,loaded_board):
+        print(loaded_board)
+        for i in range(7):
+            for j in range(6):
+                    if loaded_board[i][j]=="B":
+                        self.draw_puck(canvas,j,i,"blue")
+                    if loaded_board[i][j]=="P":
+                        self.draw_puck(canvas,j,i,"purple")
+
+    def shutdown(self):
+        print("shuting down")
+    
+    def reboot(self):
+        print("rebooting ")
+    
+    def quit(self):
+        self.root.quit()  # Exits the Tkinter main loop
+        self.root.destroy()  # Destroys the main window, freeing up resources
+
 
     def read_Serial(self):
         ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=1)
@@ -480,7 +551,7 @@ class Connect4:
     #------------------------------------------------------------------ Animation start-----------------------------------------------------------#
 
     def animation(self, canvas, Y, X, color="purple"):
-        print(self.current_frame)
+        # print(self.current_frame)
         if self.current_frame != "main":
             return 0
 
@@ -588,7 +659,7 @@ class Connect4:
         # row,column=self.gui_board[(X-1)][5-(Y-1)] 
         row,column=self.gui_board[Y][5-X]
 
-        print(row,column)
+        # print(row,column)
         self.draw_circle(canvas,row,column,25,color)
 
 
