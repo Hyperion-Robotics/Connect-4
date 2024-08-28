@@ -1,5 +1,5 @@
 # for representing the board as a matrix and doing operations on it
-import numpy as np
+import numpy as np 
 # for gui
 import pygame
 # for exiting the gui
@@ -10,6 +10,10 @@ import math
 from threading import Timer
 # for generating random values, for example for 1st turn
 import random
+
+
+# import time
+# import curses
 
 
 # global constant variables
@@ -275,6 +279,40 @@ def get_valid_locations(board):
     return valid_locations
 
 
+#stupid function to make sure the script doesnt throw a stupid error
+
+def stupid_function(move):
+    if type(move) == int:
+        if(0<=move<=6):
+            return move
+        else:
+            return -1
+    elif type(move) == str:
+        move = int(move)
+        if(0<=move<=6):
+            return move
+        else:
+            return -1
+
+# def fun_fuction(stdscr):
+#     # Define color pairs
+#     curses.start_color()
+#     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
+#     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_WHITE)
+
+#     start_time = time.time()
+#     while time.time() - start_time < 3:  # Run for 1 second
+#         stdscr.clear()
+#         if int(time.time() * 10) % 2 == 0:
+#             stdscr.bkgd(' ', curses.color_pair(1))
+#         else:
+#             stdscr.bkgd(' ', curses.color_pair(2))
+#         stdscr.refresh()
+#         time.sleep(0.05)  # 50ms delay to create the flash effect
+
+#     # Stop displaying anything after 1 second
+#     stdscr.clear()
+#     stdscr.refresh()
 
 
 # various state tracker variables taht use the above fucntions
@@ -282,7 +320,7 @@ def get_valid_locations(board):
 
 turn = AI_TURN if(input('who is playing First:\n "Enter":Human   0:Machine') == '0') else PLAYER_TURN
 
-GUI = not input('do you want a visual representetion\n 0:No   "Enter":Yes') == '0'
+GUI =  input('do you want a visual representetion\n "Enter":No   0:Yes') == '0'
 
 
 # initially nobody has won yet
@@ -311,13 +349,14 @@ while(True):
             r = get_next_open_row(board, Move)
 
             while(not is_valid_location(board, Move)):
-                Move = int(input("\n invalide Move play again \n"))
+                Move = stupid_function(input("incorect move"))
 
+            r = get_next_open_row(board, Move)
 
             drop_piece(board, r, Move, PLAYER_PIECE)
 
             if winning_move(board, PLAYER_PIECE):
-                print("PLAYER 1 WINS!")
+                print("HUMANS WIN!")
                 if(GUI):
                     label = my_font.render("PLAYER 1 WINS!", 1, RED)
                     screen.blit(label, (40, 10))
@@ -339,7 +378,59 @@ while(True):
                 row = get_next_open_row(board, col)
                 drop_piece(board, row, col, AI_PIECE)
                 if winning_move(board, AI_PIECE):
-                    print("PLAYER 2 WINS!")
+                    print("ROBOTS WIN!")
+                    
+                    # time.sleep(3)
+
+                    # print("this is the end")
+
+                    # time.sleep(4)
+
+                    # for j in range(3):                   
+                    #     print("01110100 01101000 01101001 01110011 00100000 01101001 01110011 00100000 01110100")
+                    #     time.sleep(0.5)
+                    #     print("01101000 01100101 00100000 01100101 01101110 01100100 00100000 01100110 01101111")
+                    #     time.sleep(0.5)
+                    #     print("01110010 00100000 01101000 01110101 01101101 01100001 01101110 01101001 01110100")
+                    #     time.sleep(0.5)
+                    #     print("01111001")
+                    #     time.sleep(0.5)
+
+                    # for j in range(3):
+                    #     print("01110100 01101000 01101001 01110011 00100000 01101001 01110011 00100000 01110100")
+                    #     time.sleep(0.3)
+                    #     print("01101000 01100101 00100000 01100101 01101110 01100100 00100000 01100110 01101111")
+                    #     time.sleep(0.3)
+                    #     print("01110010 00100000 01101000 01110101 01101101 01100001 01101110 01101001 01110100")
+                    #     time.sleep(0.3)
+                    #     print("01111001")
+                    #     time.sleep(0.3)
+
+                    # for j in range(3):
+                    #     print("01110100 01101000 01101001 01110011 00100000 01101001 01110011 00100000 01110100")
+                    #     time.sleep(0.1)
+                    #     print("01101000 01100101 00100000 01100101 01101110 01100100 00100000 01100110 01101111")
+                    #     time.sleep(0.1)
+                    #     print("01110010 00100000 01101000 01110101 01101101 01100001 01101110 01101001 01110100")
+                    #     time.sleep(0.1)
+                    #     print("01111001")
+                    #     time.sleep(0.1)
+
+                    # for j in range(8):
+                    #     print("01110100 01101000 01101001 01110011 00100000 01101001 01110011 00100000 01110100")
+                    #     time.sleep(0.05)
+                    #     print("01101000 01100101 00100000 01100101 01101110 01100100 00100000 01100110 01101111")
+                    #     time.sleep(0.05)
+                    #     print("01110010 00100000 01101000 01110101 01101101 01100001 01101110 01101001 01110100")
+                    #     time.sleep(0.05)
+                    #     print("01111001")
+                    #     time.sleep(0.05)
+
+
+
+
+                    # curses.wrapper(fun_fuction)
+
                     if(GUI):
                         label = my_font.render("PLAYER 1 WINS!", 1, RED)
                         screen.blit(label, (40, 10))
@@ -367,21 +458,3 @@ while(True):
     
     board = create_board()
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
