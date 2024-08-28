@@ -1,13 +1,9 @@
 # for representing the board as a matrix and doing operations on it
 import numpy as np 
-# for gui
-import pygame
-# for exiting the gui
-import sys
+
 # for calulations, for exampel with infinity
 import math
-# for delaying execution of certain events
-from threading import Timer
+
 # for generating random values, for example for 1st turn
 import random
 
@@ -30,22 +26,6 @@ AI_TURN = 1
 # pieces represented as numbers
 PLAYER_PIECE = 1
 AI_PIECE = 2
-
-# colors for GUI
-BLUE = (0, 0, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-YELLOW = (255, 255, 0)
-
-# size of one game location
-SQUARESIZE = 100
-
-# dimensions for pygame GUI
-width = COLS * SQUARESIZE
-height = (ROWS + 1) * SQUARESIZE
-circle_radius = int(SQUARESIZE/2 - 5)
-size = (width, height)
-
 
 # various functions used by the game
 # -------------------------------
@@ -102,21 +82,6 @@ def winning_move(board, piece):
             if board[r][c] == piece and board[r-1][c-1] == piece and board[r-2][c-2] == piece and board[r-3][c-3] == piece:
                 return True
 
-
-# visually representing the board using pygame
-# for each position in the matrix the board is either filled with an empty black circle, or a palyer/AI red/yellow circle
-def draw_board(board):
-    for c in range(COLS):
-        for r in range(ROWS):
-            pygame.draw.rect(screen, BLUE, (c * SQUARESIZE, r * SQUARESIZE + SQUARESIZE, SQUARESIZE, SQUARESIZE ))
-            if board[r][c] == 0:
-                pygame.draw.circle(screen, BLACK, (int(c * SQUARESIZE + SQUARESIZE/2), int(r* SQUARESIZE + SQUARESIZE + SQUARESIZE/2)), circle_radius)
-            elif board[r][c] == 1:
-                pygame.draw.circle(screen, RED, (int(c * SQUARESIZE + SQUARESIZE/2), int(r* SQUARESIZE + SQUARESIZE + SQUARESIZE/2)), circle_radius)
-            else :
-                pygame.draw.circle(screen, YELLOW, (int(c * SQUARESIZE + SQUARESIZE/2), int(r* SQUARESIZE + SQUARESIZE + SQUARESIZE/2)), circle_radius)
-
-    pygame.display.update()
 
 
 # evaluate a 'window' of 4 locations in a row based on what pieces it contains
@@ -278,183 +243,3 @@ def get_valid_locations(board):
 
     return valid_locations
 
-
-#stupid function to make sure the script doesnt throw a stupid error
-
-def stupid_function(move):
-    if type(move) == int:
-        if(0<=move<=6):
-            return move
-        else:
-            return -1
-    elif type(move) == str:
-        move = int(move)
-        if(0<=move<=6):
-            return move
-        else:
-            return -1
-
-# def fun_fuction(stdscr):
-#     # Define color pairs
-#     curses.start_color()
-#     curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_RED)
-#     curses.init_pair(2, curses.COLOR_RED, curses.COLOR_WHITE)
-
-#     start_time = time.time()
-#     while time.time() - start_time < 3:  # Run for 1 second
-#         stdscr.clear()
-#         if int(time.time() * 10) % 2 == 0:
-#             stdscr.bkgd(' ', curses.color_pair(1))
-#         else:
-#             stdscr.bkgd(' ', curses.color_pair(2))
-#         stdscr.refresh()
-#         time.sleep(0.05)  # 50ms delay to create the flash effect
-
-#     # Stop displaying anything after 1 second
-#     stdscr.clear()
-#     stdscr.refresh()
-
-
-# various state tracker variables taht use the above fucntions
-# -------------------------------
-
-turn = AI_TURN if(input('who is playing First:\n "Enter":Human   0:Machine') == '0') else PLAYER_TURN
-
-GUI =  input('do you want a visual representetion\n "Enter":No   0:Yes') == '0'
-
-
-# initially nobody has won yet
-game_over = False
-
-# initializing the board
-board = create_board()
-
-if(GUI):
-    # initializing pygame
-    pygame.init()
-    screen = pygame.display.set_mode(size)
-
-    # font for win message
-    my_font = pygame.font.SysFont("monospace", 75)
-
-    # draw GUI
-    draw_board(board)
-    pygame.display.update()
-
-while(True):
-    while not game_over:
-        if(turn == PLAYER_TURN):
-            Move = int(input("\nPlay a collumn from 0 - 6 \n"))
-
-            r = get_next_open_row(board, Move)
-
-            while(not is_valid_location(board, Move)):
-                Move = stupid_function(input("incorect move"))
-
-            r = get_next_open_row(board, Move)
-
-            drop_piece(board, r, Move, PLAYER_PIECE)
-
-            if winning_move(board, PLAYER_PIECE):
-                print("HUMANS WIN!")
-                if(GUI):
-                    label = my_font.render("PLAYER 1 WINS!", 1, RED)
-                    screen.blit(label, (40, 10))
-                    draw_board(board) 
-                break
-            # increment turn by 1
-            turn += 1
-
-            # this will alternate between 0 and 1 withe very turn
-            turn = turn % 2
-
-            
-
-        elif turn == AI_TURN:
-            # the column to drop in is found using minimax
-            col, minimax_score = minimax(board, 5, -math.inf, math.inf, True)########################## col ARDUNO OUTPUT######################################################
-
-            if is_valid_location(board, col):
-                row = get_next_open_row(board, col)
-                drop_piece(board, row, col, AI_PIECE)
-                if winning_move(board, AI_PIECE):
-                    print("ROBOTS WIN!")
-                    
-                    # time.sleep(3)
-
-                    # print("this is the end")
-
-                    # time.sleep(4)
-
-                    # for j in range(3):                   
-                    #     print("01110100 01101000 01101001 01110011 00100000 01101001 01110011 00100000 01110100")
-                    #     time.sleep(0.5)
-                    #     print("01101000 01100101 00100000 01100101 01101110 01100100 00100000 01100110 01101111")
-                    #     time.sleep(0.5)
-                    #     print("01110010 00100000 01101000 01110101 01101101 01100001 01101110 01101001 01110100")
-                    #     time.sleep(0.5)
-                    #     print("01111001")
-                    #     time.sleep(0.5)
-
-                    # for j in range(3):
-                    #     print("01110100 01101000 01101001 01110011 00100000 01101001 01110011 00100000 01110100")
-                    #     time.sleep(0.3)
-                    #     print("01101000 01100101 00100000 01100101 01101110 01100100 00100000 01100110 01101111")
-                    #     time.sleep(0.3)
-                    #     print("01110010 00100000 01101000 01110101 01101101 01100001 01101110 01101001 01110100")
-                    #     time.sleep(0.3)
-                    #     print("01111001")
-                    #     time.sleep(0.3)
-
-                    # for j in range(3):
-                    #     print("01110100 01101000 01101001 01110011 00100000 01101001 01110011 00100000 01110100")
-                    #     time.sleep(0.1)
-                    #     print("01101000 01100101 00100000 01100101 01101110 01100100 00100000 01100110 01101111")
-                    #     time.sleep(0.1)
-                    #     print("01110010 00100000 01101000 01110101 01101101 01100001 01101110 01101001 01110100")
-                    #     time.sleep(0.1)
-                    #     print("01111001")
-                    #     time.sleep(0.1)
-
-                    # for j in range(8):
-                    #     print("01110100 01101000 01101001 01110011 00100000 01101001 01110011 00100000 01110100")
-                    #     time.sleep(0.05)
-                    #     print("01101000 01100101 00100000 01100101 01101110 01100100 00100000 01100110 01101111")
-                    #     time.sleep(0.05)
-                    #     print("01110010 00100000 01101000 01110101 01101101 01100001 01101110 01101001 01110100")
-                    #     time.sleep(0.05)
-                    #     print("01111001")
-                    #     time.sleep(0.05)
-
-
-
-
-                    # curses.wrapper(fun_fuction)
-
-                    if(GUI):
-                        label = my_font.render("PLAYER 1 WINS!", 1, RED)
-                        screen.blit(label, (40, 10))
-                        draw_board(board) 
-                    break
-
-            # increment turn by 1
-            turn += 1
-            # this will alternate between 0 and 1 withe very turn
-            turn = turn % 2
-
-            print(f"colum played by AI: {col}")
-
-        if(GUI):
-                pygame.display.update()
-
-    Play_again = input('"Enter: play again(Player First)   0:Play again(Machine first)    1:End game')
-
-    if(Play_again == '0'):
-        turn = AI_TURN
-    elif(Play_again == '1'):
-        sys.exit()
-    else:
-        turn = PLAYER_TURN
-    
-    board = create_board()
-        
