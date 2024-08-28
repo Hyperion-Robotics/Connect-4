@@ -12,6 +12,10 @@ class Connect4:
         self.root.title("Connect 4")
         self.root.geometry("800x480")
         self.root.configure(bg="#4d4343")
+        # self.root.attributes("-fullscreen", True)
+        # self.root.attributes("-type", "splash")
+
+        Serial_thread = threading.Thread(target=self.read_Serial)
 
         self.frame = tk.Frame(self.root, bg="#4d4343")
         self.frame.grid(row=0, column=0, sticky="nsew")
@@ -31,6 +35,8 @@ class Connect4:
         self.UpdateFromJSON()
 
         self.create_main_frame()
+
+        Serial_thread.start()
 
 
     def create_main_frame(self):
@@ -121,19 +127,19 @@ class Connect4:
         self.draw_board_from_save(self.canvas,board)
         
         #All this here is for testing and the self.change_side function messes up the side because it swaps it every time the create_main_frame is called
-        self.add_puck_to_column(self.board,1)
-        self.change_sides()
-        self.add_puck_to_column(self.board,1)
-        self.change_sides()
-        self.add_puck_to_column(self.board,1)
-        self.change_sides()
-        self.add_puck_to_column(self.board,1)
-        self.change_sides()
-        self.add_puck_to_column(self.board,2)
-        self.change_sides()
-        self.add_puck_to_column(self.board,5)
-        self.print_board(self.board)
-        self.save_game(self.board)
+        # self.add_puck_to_column(self.board,1)
+        # self.change_sides()
+        # self.add_puck_to_column(self.board,1)
+        # self.change_sides()
+        # self.add_puck_to_column(self.board,1)
+        # self.change_sides()
+        # self.add_puck_to_column(self.board,1)
+        # self.change_sides()
+        # self.add_puck_to_column(self.board,2)
+        # self.change_sides()
+        # self.add_puck_to_column(self.board,5)
+        # self.print_board(self.board)
+        # self.save_game(self.board)
 
         # Configure the grid layout within the frame to center content
         self.frame.grid_rowconfigure(0, weight=1)  # Row for the label
@@ -420,7 +426,7 @@ class Connect4:
 
     def UpdateFromJSON(self):
         #updates all the lists from the 2 json files
-        with open(r"C:\Users\gkkti\Documents\Python\settings.json", "r") as json_file:
+        with open("/home/connect4/gui/settings.json", "r") as json_file:
              settings = json.load(json_file)
 
         for item in settings:
@@ -437,7 +443,7 @@ class Connect4:
 
     def saveSettings(self):
         #exports the settings.json file from the list values
-        with open(r"C:\Users\gkkti\Documents\Python\settings.json", "r") as json_file:
+        with open("/home/connect4/gui/settings.json", "r") as json_file:
              settings = json.load(json_file)
 
         i=0     
@@ -445,7 +451,7 @@ class Connect4:
              item['status'] = self.settingStatus[i]
              i=i+1
 
-        with open(r"C:\Users\gkkti\Documents\Python\settings.json", 'w') as file:
+        with open("/home/connect4/gui/settings.json", 'w') as file:
             json.dump(settings, file, indent=2)
 
     def open_file_dialog(self):
@@ -535,14 +541,18 @@ class Connect4:
 
         try:
             while True:
+                # print("here")
                 if ser.in_waiting > 0:  # Check if there is data waiting in the buffer
                     msg = ser.readline().decode('utf-8').rstrip()  # Read the data and decode it
-                    print(msg)  # Print the data to the terminal
+                    # print(msg)  # Print the data to the terminal
                     index,data=msg.split(",")
                     if index=="1":
-                        self.board=self.add_puck_to_column(self.board,int(data))
-                        self.print_board(self.board)
-                        self.change_sides()
+                        print(data)
+                        if self.current_frame=="game":
+                            self.board=self.add_puck_to_column(self.board,int(data))
+                            self.print_board(self.board)
+                            self.change_sides()
+                            # self.save_game(self.board)
         except KeyboardInterrupt:
             print("Exiting...")
         finally:
