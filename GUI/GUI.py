@@ -1,9 +1,119 @@
-import tkinter as tk
-import threading
-import serial
-from datetime import datetime
+import numpy as np
 import json
+import math
+import serial
+import threading
+import tkinter as tk
+import algorithm as ai
+from datetime import datetime
 from tkinter import filedialog
+
+
+
+class Interpiter:
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def transpose_board(original_board):
+        board = [[0 for _ in range(7)] for l in range(6)]
+        for y in range(6):
+            for x in range(7):
+                # print(f"x:{x}, y:{y}")
+                board[5-y][x] = original_board[x][y]
+        return board
+
+
+  
+    
+    @staticmethod
+    def reverse_transpose_board(transposed_board):
+        board = [[0 for _ in range(6)] for l in range(7)]
+        for y in range(6):
+            for x in range(7):
+                board[x][5-y] = transposed_board[y][x]
+
+
+        return board
+
+    
+    @staticmethod
+    def convert_board(board, player_color):
+        # Create a new board to store the converted values
+        converted_board = [[0] * len(board[0]) for _ in range(len(board))]
+        
+        # Define the conversion mapping based on player_color
+        if player_color == "purple":
+            conversion = {'P': 1, 'B': 2}
+        elif player_color == "blue":
+            conversion = {'B': 1, 'P': 2}
+        else:
+            raise ValueError("Invalid player color. Must be 'purple' or 'blue'.")
+
+        # Traverse the board and convert "P" and "B" based on the mapping
+        for i in range(len(board)):
+            for j in range(len(board[0])):
+                if board[i][j] in conversion:
+                    converted_board[i][j] = conversion[board[i][j]]
+                else:
+                    converted_board[i][j] = board[i][j]  # Keep 0s as they are
+
+        return converted_board
+    
+    @staticmethod
+    def reverse_convert_board(converted_board, player_color):
+        # Create a new board to store the reconverted values
+        original_board = [[0] * len(converted_board[0]) for _ in range(len(converted_board))]
+        
+        # Define the reverse conversion mapping based on player_color
+        if player_color == "purple":
+            reverse_conversion = {1: 'P', 2: 'B'}
+        elif player_color == "blue":
+            reverse_conversion = {1: 'B', 2: 'P'}
+        else:
+            raise ValueError("Invalid player color. Must be 'purple' or 'blue'.")
+
+        # Traverse the board and reconvert 1 and 2 based on the mapping
+        for i in range(len(converted_board)):
+            for j in range(len(converted_board[0])):
+                if converted_board[i][j] in reverse_conversion:
+                    original_board[i][j] = reverse_conversion[converted_board[i][j]]
+                else:
+                    original_board[i][j] = converted_board[i][j]  # Keep 0s as they are
+
+        return original_board
+    
+    @staticmethod
+    def encrypt(board, player_color):
+        # print(board)
+        board=Interpiter.transpose_board(board)
+        # print(board)
+        board=Interpiter.convert_board(board, player_color)
+        # print(board)
+        board = np.array(board)
+
+        print("NEW\n")
+        print(board)
+
+        return board
+    
+    @staticmethod
+    def dencrypt(board, player_color):
+        board = board.tolist()
+        print(board)
+        board=Interpiter.reverse_transpose_board(board)
+        print(board)
+        board=Interpiter.reverse_convert_board(board, player_color)
+        print(board)
+        
+
+        return board
+
+
+
+        
+
+
 
 
 class Connect4:
@@ -27,6 +137,7 @@ class Connect4:
         self.board = [[0 for _ in range(6)] for l in range(7)]
         self.gui_board = [[0 for _ in range(6)] for l in range(7)]
         self.side = "purple"
+        self.turn = "player"
         self.current_frame="main"
         self.settingName=[]
         self.settingStatus=[]
@@ -363,6 +474,7 @@ class Connect4:
             
     def add_puck_to_column(self,gameboard,gate):
         empty_row=0
+        print(gate)
         for i in range(6):
             if gameboard[gate-1][i]==0:
                 empty_row=i
@@ -395,6 +507,12 @@ class Connect4:
             self.side="blue"
         elif self.side=="blue":
             self.side="purple"
+
+    def change_turn(self):
+        if self.turn == "player":
+            self.turn = "robot"
+        elif self.turn == "robot":
+            self.turn = "player"
 
     def button_pressed(self):  #  For testing buttons
         print("button pressed")
@@ -549,9 +667,20 @@ class Connect4:
                     if index=="1":
                         print(data)
                         if self.current_frame=="game":
-                            self.board=self.add_puck_to_column(self.board,int(data))
-                            self.print_board(self.board)
+                            if self.turn == "player":
+                                self.board=self.add_puck_to_column(self.board,int(data))
+                                self.print_board(self.board)
+                                board = Interpiter.encrypt(self.board, self.side)
+                                column, minimax_score = ai.minimax(board, 5, -math.inf, math.inf, True)
+                                self.board = Interpiter.dencrypt(board, self.side)
+                                print(f"AI move {column}")
+                            elif self.turn == "robot":
+                                print(f"robot move {data}")
+                                self.board=self.add_puck_to_column(self.board,int(data))
+                                self.print_board(self.board)
+
                             self.change_sides()
+                            self.change_turn()
                             # self.save_game(self.board)
         except KeyboardInterrupt:
             print("Exiting...")
@@ -682,3 +811,4 @@ if __name__ == "__main__":
 
     # Start the main event loop
     root.mainloop()
+    
