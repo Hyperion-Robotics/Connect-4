@@ -7,8 +7,33 @@ import tkinter as tk
 import algorithm as ai
 from datetime import datetime
 from tkinter import filedialog
+import subprocess
 
+from interbotix_xs_msgs.srv import TorqueEnable
+import rclpy
+from rclpy.node import Node
 
+class torqueClient(Node):
+
+    def __init__(self):
+        super().__init__('client')
+        self.cli = self.create_client(TorqueEnable, 'wx250/torque_enable')
+        while not self.cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('service not available, waiting again...')
+        self.req = TorqueEnable.Request()
+
+    def send_request(self, cmd):
+        if cmd==1:
+            torque=True
+        elif cmd==0:
+            torque=False
+        else:
+            print("Error. Aborting")
+            return 0
+        self.req.cmd_type='group'
+        self.req.name='all'
+        self.req.enable=torque
+        return self.cli.call_async(self.req)
 
 class Interpiter:
     def __init__(self):
@@ -118,12 +143,18 @@ class Interpiter:
 
 class Connect4:
     def __init__(self, root):
+        rclpy.init()
+
         self.root = root
         self.root.title("Connect 4")
         self.root.geometry("800x480")
         self.root.configure(bg="#4d4343")
-        # self.root.attributes("-fullscreen", True)
+        self.root.attributes("-fullscreen", True)
         # self.root.attributes("-type", "splash")
+
+        self.ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=1)
+
+        self.arm_torque=torqueClient()
 
         Serial_thread = threading.Thread(target=self.read_Serial)
 
@@ -142,6 +173,8 @@ class Connect4:
         self.settingName=[]
         self.settingStatus=[]
         self.after_ids=[]
+        self.armTorque=True
+        self.magnetState=False
 
         self.UpdateFromJSON()
 
@@ -303,9 +336,9 @@ class Connect4:
         # Create the buttons and arrange them vertically
         button1 = tk.Button(self.frame, text=self.settingName[0], command=lambda: self.toggleSetting(1), bg=self.settingStatus[0], fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         button2 = tk.Button(self.frame, text=self.settingName[1], command=lambda: self.toggleSetting(2), bg=self.settingStatus[1], fg="white", font=('DejaVu Sans', 30), width=20, height=3)
-        button3 = tk.Button(self.frame, text=self.settingName[2], command=lambda: self.toggleSetting(3), bg=self.side, fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         
         # Fixing the command functions for the buttons
+        button3 = tk.Button(self.frame, text="Toggle Arm\nTorque", command= self.toggle_arm_torque, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         button4 = tk.Button(self.frame, text="Test IR Gates", command=self.create_ir_test_menu, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         button5 = tk.Button(self.frame, text="Test Arm\nPositions", command=self.create_arm_menu, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         button6 = tk.Button(self.frame, text="Toggle\nPumps", command=self.toggle_pumps, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
@@ -519,6 +552,22 @@ class Connect4:
 
     def toggle_pumps(self):  #  For testing buttons
         print("Pumps toggled")
+        cmd = "1,2,"
+
+        self.ser.write(cmd.encode('utf-8'))
+
+    def toggle_arm_torque(self):
+        if self.armTorque:
+            print("Disabling Arm Torque")
+            self.armTorque=False
+            self.arm_torque.send_request(0)
+            
+        elif not self.armTorque:
+            print("Enablig Arm Torque")
+            self.arm_torque.send_request(1)
+            self.armTorque=True
+
+
 
     def move_arm(self, stance):
         print("Arm moved at pos "+str(stance))
@@ -655,14 +704,13 @@ class Connect4:
 
 
     def read_Serial(self):
-        ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=1)
 
         try:
             while True:
                 # print("here")
-                if ser.in_waiting > 0:  # Check if there is data waiting in the buffer
-                    msg = ser.readline().decode('utf-8').rstrip()  # Read the data and decode it
-                    # print(msg)  # Print the data to the terminal
+                if self.ser.in_waiting > 0:  # Check if there is data waiting in the buffer
+                    msg = self.ser.readline().decode('utf-8').rstrip()  # Read the data and decode it
+                    print(msg)  # Print the data to the terminal
                     index,data=msg.split(",")
                     if index=="1":
                         print(data)
@@ -685,7 +733,7 @@ class Connect4:
         except KeyboardInterrupt:
             print("Exiting...")
         finally:
-            ser.close()  # Make sure to close the port when done
+            self.ser.close()  # Make sure to close the port when done
 
     #------------------------------------------------------------------ Animation start-----------------------------------------------------------#
 
@@ -811,4 +859,3 @@ if __name__ == "__main__":
 
     # Start the main event loop
     root.mainloop()
-    
