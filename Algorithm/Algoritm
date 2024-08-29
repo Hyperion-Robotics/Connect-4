@@ -1,6 +1,3 @@
-# for representing the board as a matrix and doing operations on it
-import numpy as np 
-
 # for calulations, for exampel with infinity
 import math
 
@@ -29,12 +26,6 @@ AI_PIECE = 2
 
 # various functions used by the game
 # -------------------------------
-
-# using numpy, create an empty matrix of 6 rows and 7 columns
-def create_board():
-    board = np.zeros((ROWS, COLS))
-    return board
-
 
 # add a piece to a given location, i.e., set a position in the matrix as 1 or 2
 def drop_piece(board, row, col, piece):
