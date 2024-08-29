@@ -57,6 +57,8 @@ def main():
         gripper_name='gripper',
     )
 
+    servo = ["waist", "shoulder", "elbow", "wrist_angle", "wrist_rotate"]
+
     robot_startup()
 
     if (bot.arm.group_info.num_joints < 5):
@@ -66,7 +68,26 @@ def main():
         robot_shutdown()
         sys.exit()
 
-    joints=[-0.003,-1.85,0.3,-0.02,-1.6]
+    Home=[-0.003,-1.33,0.68,-0.9,-1.6]
+
+    gate0 = [-1.58, 0.54, -1.05, 0.55, 0.0]
+    gate1 = [-1.60, 0.386, -0.918,  0.972, -0.039]
+    gate2 = [-1.584,  0.006, -0.400, 0.891, -0.053]
+    gate3 = [-1.584, -0.0291,  -0.581, 1.44, -0.052]
+    gate4 = [-1.584, -0.297,  -0.314, 1.495, -0.035]
+    gate5 = [-1.584, -0.625,-0.19, 1.489, -0.035]
+    gate6 = [-1.575, -0.955, 0.124, 1.478, -0.023]
+
+    middle = [-2.02, -1.49, 0.33, -0.19, -0.06]
+
+    GATES = [gate0, gate1, gate2, gate3, gate4, gate5, gate6]
+
+    left_look = [-0.003,-1.33,0.68,-0.9, 0.02] 
+    center_look = [-0.003,-1.33,0.68,-0.9, -1.53]
+    right_look = [-0.003,-1.33,0.68,-0.9, -3.12]
+
+    head = [left_look, center_look, right_look]
+    transcaction = [-2.06, 0.41, -0.54, -0.74, 1.05]
 
     # joints=[0,0,0,0,0]
 
@@ -94,12 +115,65 @@ def main():
     # bot.arm.set_single_joint_position(joint_name='wrist_angle', position=-0.02)
     # # sleep(0.5)
     # bot.arm.set_single_joint_position(joint_name='wrist_rotate', position=-1.6)
-    bot.arm.set_joint_positions(joints)
+
+
+
+    while True:
+        a = int(input("Choose Mottor: "))
+        b = float(input("RADIANS: "))
+
+        bot.arm.set_single_joint_position(servo[a], b)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    print(bot.arm.set_joint_positions(head[0]))
+    sleep(0.5)
+    print(bot.arm.set_joint_positions(head[2]))
+    sleep(0.5)
+    print(bot.arm.set_joint_positions(head[1]))
+    sleep(0.5)
+
+    print(bot.arm.set_joint_positions(Home))
     # sleep(0.5)
     # bot.gripper.grasp()
     # sleep(1)
     # bot.gripper.release()
-    sleep(5)
+
+    # for i in range(7):
+    #     print(bot.arm.set_joint_positions(GATES[6-i]))
+    #     sleep(5)
+    print(bot.arm.set_joint_positions(middle))
+    print(bot.arm.set_joint_positions(transcaction))
+    for i in range(7):
+        print(bot.arm.set_joint_positions(GATES[i]))
+        sleep(1)
+        print(bot.arm.set_joint_positions(transcaction))
+
+
+    print(bot.arm.set_joint_positions(transcaction))
+    print(bot.arm.set_joint_positions(middle))
+    print(bot.arm.set_joint_positions(Home))
+
+
     bot.arm.go_to_sleep_pose()
 
     robot_shutdown()
