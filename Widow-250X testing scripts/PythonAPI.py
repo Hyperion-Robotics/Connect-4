@@ -1,93 +1,119 @@
 #!/usr/bin/env python3
 
-# Copyright 2024 Trossen Robotics
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-#    * Redistributions of source code must retain the above copyright
-#      notice, this list of conditions and the following disclaimer.
-#
-#    * Redistributions in binary form must reproduce the above copyright
-#      notice, this list of conditions and the following disclaimer in the
-#      documentation and/or other materials provided with the distribution.
-#
-#    * Neither the name of the copyright holder nor the names of its
-#      contributors may be used to endorse or promote products derived from
-#      this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-
 import sys
 import numpy as np
 from time import sleep
 from interbotix_xs_modules.xs_robot.arm import InterbotixManipulatorXS
 from interbotix_common_modules.common_robot.robot import robot_shutdown, robot_startup
 
-"""
-This script makes the end-effector perform pick, pour, and place tasks.
-Note that this script may not work for every arm as it was designed for the wx250.
-Make sure to adjust commanded joint positions and poses as necessary.
+from interbotix_xs_msgs.srv import TorqueEnable
+from rclpy.node import Node
 
-To get started, open a terminal and type:
+#To launch arm enter the following after sourcing the interbotix ros2 package
+#ros2 launch interbotix_xsarm_control xsarm_control.launch.py robot_model:=wx250
 
-    ros2 launch interbotix_xsarm_control xsarm_control.launch.py robot_model:=wx250
+class torqueClient(Node):
+    
 
-Then change to this directory and type:
+    def __init__(self):
+        super().__init__('client')
+        self.cli = self.create_client(TorqueEnable, 'wx250/torque_enable')
+        while not self.cli.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('service not available, waiting again...')
+        self.req = TorqueEnable.Request()
 
-    python3 bartender.py
-"""
+    def send_request(self, cmd):
+        if cmd==1:
+            torque=True
+        elif cmd==0:
+            torque=False
+        else:
+            print("Error. Aborting")
+            return 0
+        self.req.cmd_type='group'
+        self.req.name='all'
+        self.req.enable=torque
+        return self.cli.call_async(self.req)
+
+class ROBOTIC_ARM:
+    def __init__(self) -> None:
+        self.bot = InterbotixManipulatorXS(
+                        robot_model='wx250',
+                        group_name='arm',
+                        gripper_name='gripper',
+                    )
+        
+        robot_startup()
+
+        if (self.bot.arm.group_info.num_joints < 5):
+            self.bot.get_node().logfatal(
+                'This demo requires the robot to have at least 5 joints!'
+            )
+            robot_shutdown()
+            sys.exit()
+        
+        self.states = ["sleeping", "home", "action"]# sleeping: is on sleep mode, home: is on home coordinates, action: is on the transcaction coordinates 
+
+        Home=[-0.003,-1.33,0.68,-0.9,-1.6]
+        middle = [-2.02, -1.49, 0.33, -0.19, -0.06]
+        transcaction = [-1.55, -1, -0.54, 1, -0.75]
+
+        gate0 = [-1.55, 0.93, -1.8, 0.8, 0]#ok
+        gate1 = [-1.55, 0.15, -0.4, 0.3, 0]#ok
+        gate2 = [-1.55, 0, -0.54, 1, 0]#ok
+        gate3 = [-1.55, -0.375, 0, 0.7, 0]#ok
+        gate4 = [-1.55, -0.65, 0.3, 0.6, 0]#ok
+        gate5 = [-1.55, -1, 0.61, 0.4, 0]#ok
+        gate6 = [-1.55, -1.2, 0.45, 1, 0]#ok
+
+        left_look = [-0.003,-1.33,0.68,-0.9, 0.02] 
+        center_look = [-0.003,-1.33,0.68,-0.9, -1.53]
+        right_look = [-0.003,-1.33,0.68,-0.9, -3.12]
+
+        self.key_states = {
+            "HOME": Home,
+            "MIDPOINT": middle,
+            "TRANSITION":transcaction
+        }
+        self.GATES = [gate0, gate1, gate2, gate3, gate4, gate5, gate6]
+        self.head = [left_look, center_look, right_look]
+
+        self.state = self.states[0]
+
+        self.servos = ["waist", "shoulder", "elbow", "wrist_angle", "wrist_rotate"]
+
+    
+    def hibernation_mode(self): #the potition where the torque is closed so that the servos can rest alitle
+        if self.state == self.states[0]:
+            pass##torn off torque
+        elif self.state == self.states[1]:
+            self.bot.arm.go_to_sleep_pose()
+            pass##torn off torque
+        elif self.state == self.states:
+            self.bot.arm.set_joint_positions(self.key_states["MIDPOINT"])
+            self.bot.arm.set_joint_positions(self.key_states["HOME"])
+            self.bot.arm.go_to_sleep_pose()
+            pass##torn off torque
+
+    def start_game(self):
+        if self.state == self.states[0]:
+            self.bot.arm.set_joint_positions(self.key_states["MIDPOINT"])
+            self.bot.arm.set_joint_positions(self.key_states["TRANSITION"])
+        elif self.state == self.states[1]:
+            self.bot.arm.set_joint_positions(self.key_states["TRANSITION"])
+        
+
+    def play_gate(self,id:int):
+        self.bot.arm.set_joint_positions(self.GATES[id])
+        self.bot.arm.set_single_joint_position(joint_name=self.servos[0] , position=-1.50)
+        self.bot.arm.set_joint_positions(self.key_states["TRANSITION"])
+
+
+
+
 
 
 def main():
-    bot = InterbotixManipulatorXS(
-        robot_model='wx250',
-        group_name='arm',
-        gripper_name='gripper',
-    )
-
-    servo = ["waist", "shoulder", "elbow", "wrist_angle", "wrist_rotate"]
-
-    robot_startup()
-
-    if (bot.arm.group_info.num_joints < 5):
-        bot.get_node().logfatal(
-            'This demo requires the robot to have at least 5 joints!'
-        )
-        robot_shutdown()
-        sys.exit()
-
-    Home=[-0.003,-1.33,0.68,-0.9,-1.6]
-
-    gate0 = [-1.55, 0.93, -1.8, 0.8, 0]#ok
-    gate1 = [-1.55, 0.15, -0.4, 0.3, 0]#ok
-    gate2 = [-1.55, 0, -0.54, 1, 0]#ok
-    gate3 = [-1.55, -0.375, 0, 0.7, 0]#ok
-    gate4 = [-1.55, -0.65, 0.3, 0.6, 0]#ok
-    gate5 = [-1.55, -1, 0.61, 0.4, 0]#ok
-    gate6 = [-1.55, -1.2, 0.45, 1, 0]#ok
-
-    middle = [-2.02, -1.49, 0.33, -0.19, -0.06]
-
-    GATES = [gate0, gate1, gate2, gate3, gate4, gate5, gate6]
-
-    left_look = [-0.003,-1.33,0.68,-0.9, 0.02] 
-    center_look = [-0.003,-1.33,0.68,-0.9, -1.53]
-    right_look = [-0.003,-1.33,0.68,-0.9, -3.12]
-
-    head = [left_look, center_look, right_look]
-    transcaction = [-1.55, -1, -0.54, 1, -0.75]
 
     # joints=[0,0,0,0,0]
 
@@ -117,14 +143,7 @@ def main():
     # bot.arm.set_single_joint_position(joint_name='wrist_rotate', position=-1.6)
 
 
-    print(bot.arm.set_joint_positions(head[2]))
-    sleep(0.5)
-    print(bot.arm.set_joint_positions(head[0]))
-    sleep(0.5)
-    print(bot.arm.set_joint_positions(head[1]))
-    sleep(0.5)
 
-    print(bot.arm.set_joint_positions(Home))
     # sleep(0.5)
     # bot.gripper.grasp()
     # sleep(1)
@@ -143,34 +162,21 @@ def main():
     # input()
     print(bot.arm.set_joint_positions(transcaction))
 
-    print(bot.arm.set_joint_positions(gate0))
-    input()
-    print(bot.arm.set_joint_positions(transcaction))
 
-    print(bot.arm.set_joint_positions(gate2))
-    input()
-    print(bot.arm.set_joint_positions(transcaction))
-
-    
     # print(bot.arm.set_joint_positions(transcaction))
+    # print(bot.arm.set_joint_positions(middle))
+    # print(bot.arm.set_joint_positions(Home))
 
+    for i in range(7):
+        print(bot.arm.set_joint_positions(GATES[i]))
+        print(bot.arm.set_single_joint_position(joint_name='waist', position=-1.50))
+        input()
+        print(bot.arm.set_joint_positions(transcaction))
+        input()
 
-
-    # print(bot.arm.set_joint_positions(GATES[0]))
-
-    while True:
-        a = int(input("Choose Mottor: "))
-        b = float(input("RADIANS: "))
-
-        bot.arm.set_single_joint_position(servo[a], b)
-
-    sleep(1)
-    print(bot.arm.set_joint_positions(transcaction))
-
-
-    print(bot.arm.set_joint_positions(transcaction))
     print(bot.arm.set_joint_positions(middle))
     print(bot.arm.set_joint_positions(Home))
+
 
 
     bot.arm.go_to_sleep_pose()
@@ -180,4 +186,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
