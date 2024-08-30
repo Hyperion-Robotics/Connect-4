@@ -28,12 +28,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import sys
 
-from interbotix_common_modules.common_robot.robot import robot_shutdown, robot_startup
-from interbotix_xs_modules.xs_robot.arm import InterbotixManipulatorXS
+import sys
 import numpy as np
 from time import sleep
+from interbotix_xs_modules.xs_robot.arm import InterbotixManipulatorXS
+from interbotix_common_modules.common_robot.robot import robot_shutdown, robot_startup
 
 """
 This script makes the end-effector perform pick, pour, and place tasks.
@@ -70,13 +70,13 @@ def main():
 
     Home=[-0.003,-1.33,0.68,-0.9,-1.6]
 
-    gate0 = [-1.58, 0.54, -1.05, 0.55, 0.0]
-    gate1 = [-1.60, 0.386, -0.918,  0.972, -0.039]
-    gate2 = [-1.584,  0.006, -0.400, 0.891, -0.053] #kouna monon to 3 ase ta alla stathera gia eukolia na pirazeis mono mia timi 
-    gate3 = [-1.584, -0.0291,  -0.581, 1.44, -0.052]
-    gate4 = [-1.584, -0.297,  -0.314, 1.495, -0.035]
-    gate5 = [-1.584, -0.625,-0.19, 1.489, -0.035]
-    gate6 = [-1.575, -0.955, 0.124, 1.478, -0.023]
+    gate0 = [-1.55, 0.93, -1.8, 0.8, 0]#ok
+    gate1 = [-1.55, 0.15, -0.4, 0.3, 0]#ok
+    gate2 = [-1.55, 0, -0.54, 1, 0]#ok
+    gate3 = [-1.55, -0.375, 0, 0.7, 0]#ok
+    gate4 = [-1.55, -0.65, 0.3, 0.6, 0]#ok
+    gate5 = [-1.55, -1, 0.61, 0.4, 0]#ok
+    gate6 = [-1.55, -1.2, 0.45, 1, 0]#ok
 
     middle = [-2.02, -1.49, 0.33, -0.19, -0.06]
 
@@ -87,7 +87,7 @@ def main():
     right_look = [-0.003,-1.33,0.68,-0.9, -3.12]
 
     head = [left_look, center_look, right_look]
-    transcaction = [-2.06, 0.41, -0.54, -0.74, 1.05]
+    transcaction = [-1.55, -1, -0.54, 1, -0.75]
 
     # joints=[0,0,0,0,0]
 
@@ -117,37 +117,9 @@ def main():
     # bot.arm.set_single_joint_position(joint_name='wrist_rotate', position=-1.6)
 
 
-
-    while True:
-        a = int(input("Choose Mottor: "))
-        b = float(input("RADIANS: "))
-
-        bot.arm.set_single_joint_position(servo[a], b)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    print(bot.arm.set_joint_positions(head[0]))
-    sleep(0.5)
     print(bot.arm.set_joint_positions(head[2]))
+    sleep(0.5)
+    print(bot.arm.set_joint_positions(head[0]))
     sleep(0.5)
     print(bot.arm.set_joint_positions(head[1]))
     sleep(0.5)
@@ -162,11 +134,38 @@ def main():
     #     print(bot.arm.set_joint_positions(GATES[6-i]))
     #     sleep(5)
     print(bot.arm.set_joint_positions(middle))
+    # print(bot.arm.set_joint_positions(transcaction))
+    # print(bot.arm.set_joint_positions(gate6))
+    # input()
+    # print(bot.arm.set_joint_positions(transcaction))
+
+    # print(bot.arm.set_joint_positions(gate5))
+    # input()
     print(bot.arm.set_joint_positions(transcaction))
-    for i in range(7):
-        print(bot.arm.set_joint_positions(GATES[i]))
-        sleep(1)
-        print(bot.arm.set_joint_positions(transcaction))
+
+    print(bot.arm.set_joint_positions(gate0))
+    input()
+    print(bot.arm.set_joint_positions(transcaction))
+
+    print(bot.arm.set_joint_positions(gate2))
+    input()
+    print(bot.arm.set_joint_positions(transcaction))
+
+    
+    # print(bot.arm.set_joint_positions(transcaction))
+
+
+
+    # print(bot.arm.set_joint_positions(GATES[0]))
+
+    while True:
+        a = int(input("Choose Mottor: "))
+        b = float(input("RADIANS: "))
+
+        bot.arm.set_single_joint_position(servo[a], b)
+
+    sleep(1)
+    print(bot.arm.set_joint_positions(transcaction))
 
 
     print(bot.arm.set_joint_positions(transcaction))
@@ -181,3 +180,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
