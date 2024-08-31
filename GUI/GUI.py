@@ -5,141 +5,13 @@ import serial
 import threading
 import tkinter as tk
 import algorithm as ai
+import armControl as arm
+from armControl import ROBOTIC_ARM
 from datetime import datetime
 from tkinter import filedialog
 import subprocess
-
-from interbotix_xs_msgs.srv import TorqueEnable
 import rclpy
-from rclpy.node import Node
-
-class torqueClient(Node):
-
-    def __init__(self):
-        super().__init__('client')
-        self.cli = self.create_client(TorqueEnable, 'wx250/torque_enable')
-        while not self.cli.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('service not available, waiting again...')
-        self.req = TorqueEnable.Request()
-
-    def send_request(self, cmd):
-        if cmd==1:
-            torque=True
-        elif cmd==0:
-            torque=False
-        else:
-            print("Error. Aborting")
-            return 0
-        self.req.cmd_type='group'
-        self.req.name='all'
-        self.req.enable=torque
-        return self.cli.call_async(self.req)
-
-class Interpiter:
-    def __init__(self):
-        pass
-
-    @staticmethod
-    def transpose_board(original_board):
-        board = [[0 for _ in range(7)] for l in range(6)]
-        for y in range(6):
-            for x in range(7):
-                # print(f"x:{x}, y:{y}")
-                board[5-y][x] = original_board[x][y]
-        return board
-
-
   
-    
-    @staticmethod
-    def reverse_transpose_board(transposed_board):
-        board = [[0 for _ in range(6)] for l in range(7)]
-        for y in range(6):
-            for x in range(7):
-                board[x][5-y] = transposed_board[y][x]
-
-
-        return board
-
-    
-    @staticmethod
-    def convert_board(board, player_color):
-        # Create a new board to store the converted values
-        converted_board = [[0] * len(board[0]) for _ in range(len(board))]
-        
-        # Define the conversion mapping based on player_color
-        if player_color == "purple":
-            conversion = {'P': 1, 'B': 2}
-        elif player_color == "blue":
-            conversion = {'B': 1, 'P': 2}
-        else:
-            raise ValueError("Invalid player color. Must be 'purple' or 'blue'.")
-
-        # Traverse the board and convert "P" and "B" based on the mapping
-        for i in range(len(board)):
-            for j in range(len(board[0])):
-                if board[i][j] in conversion:
-                    converted_board[i][j] = conversion[board[i][j]]
-                else:
-                    converted_board[i][j] = board[i][j]  # Keep 0s as they are
-
-        return converted_board
-    
-    @staticmethod
-    def reverse_convert_board(converted_board, player_color):
-        # Create a new board to store the reconverted values
-        original_board = [[0] * len(converted_board[0]) for _ in range(len(converted_board))]
-        
-        # Define the reverse conversion mapping based on player_color
-        if player_color == "purple":
-            reverse_conversion = {1: 'P', 2: 'B'}
-        elif player_color == "blue":
-            reverse_conversion = {1: 'B', 2: 'P'}
-        else:
-            raise ValueError("Invalid player color. Must be 'purple' or 'blue'.")
-
-        # Traverse the board and reconvert 1 and 2 based on the mapping
-        for i in range(len(converted_board)):
-            for j in range(len(converted_board[0])):
-                if converted_board[i][j] in reverse_conversion:
-                    original_board[i][j] = reverse_conversion[converted_board[i][j]]
-                else:
-                    original_board[i][j] = converted_board[i][j]  # Keep 0s as they are
-
-        return original_board
-    
-    @staticmethod
-    def encrypt(board, player_color):
-        # print(board)
-        board=Interpiter.transpose_board(board)
-        # print(board)
-        board=Interpiter.convert_board(board, player_color)
-        # print(board)
-        board = np.array(board)
-
-        print("NEW\n")
-        print(board)
-
-        return board
-    
-    @staticmethod
-    def dencrypt(board, player_color):
-        board = board.tolist()
-        print(board)
-        board=Interpiter.reverse_transpose_board(board)
-        print(board)
-        board=Interpiter.reverse_convert_board(board, player_color)
-        print(board)
-        
-
-        return board
-
-
-
-        
-
-
-
 
 class Connect4:
     def __init__(self, root):
@@ -152,9 +24,9 @@ class Connect4:
         self.root.attributes("-fullscreen", True)
         # self.root.attributes("-type", "splash")
 
-        self.ser = serial.Serial("/dev/ttyUSB0", 115200, timeout=1)
+        self.ser = serial.Serial("/dev/ttyESP", 9600, timeout=1)
 
-        self.arm_torque=torqueClient()
+        self.arm_torque=arm.torqueClient()
 
         Serial_thread = threading.Thread(target=self.read_Serial)
 
@@ -181,6 +53,9 @@ class Connect4:
         self.create_main_frame()
 
         Serial_thread.start()
+
+        self.arm = ROBOTIC_ARM()
+
 
 
     def create_main_frame(self):
@@ -252,6 +127,10 @@ class Connect4:
         self.timestamp = datetime.now().strftime('%d_%H_%M')
         self.board=[[0 for _ in range(6)] for l in range(7)]
         self.create_game_frame(self.board)
+        self.set_arm_torque(True)
+        self.arm.move_to_pos("home")
+        self.arm.wake_up()
+        self.arm.start_game()
 
     def create_game_frame(self,board):
         self.clear_frame()
@@ -555,6 +434,23 @@ class Connect4:
         cmd = "1,2,"
 
         self.ser.write(cmd.encode('utf-8'))
+    
+    def set_magnet(self, state):  #  For testing buttons
+        print("Pumps toggled")
+        if state:
+            cmd = "1,1,"
+        else:
+            cmd = "1,0,"
+        self.ser.write(cmd.encode('utf-8'))
+
+    @staticmethod
+    def static_set_magnet(self, state):  #  For testing buttons
+        print("Pumps toggled")
+        if state:
+            cmd = "1,1,"
+        else:
+            cmd = "1,0,"
+        self.ser.write(cmd.encode('utf-8'))
 
     def toggle_arm_torque(self):
         if self.armTorque:
@@ -566,7 +462,17 @@ class Connect4:
             print("Enablig Arm Torque")
             self.arm_torque.send_request(1)
             self.armTorque=True
-
+    
+    def set_arm_torque(self, state):
+        if not state :
+            print("Disabling Arm Torque")
+            self.armTorque=False
+            self.arm_torque.send_request(0)
+            
+        else:
+            print("Enablig Arm Torque")
+            self.arm_torque.send_request(1)
+            self.armTorque=True
 
 
     def move_arm(self, stance):
@@ -704,7 +610,6 @@ class Connect4:
 
 
     def read_Serial(self):
-
         try:
             while True:
                 # print("here")
@@ -715,21 +620,30 @@ class Connect4:
                     if index=="1":
                         print(data)
                         if self.current_frame=="game":
-                            if self.turn == "player":
-                                self.board=self.add_puck_to_column(self.board,int(data))
-                                self.print_board(self.board)
-                                board = Interpiter.encrypt(self.board, self.side)
-                                column, minimax_score = ai.minimax(board, 5, -math.inf, math.inf, True)
-                                self.board = Interpiter.dencrypt(board, self.side)
-                                print(f"AI move {column}")
-                            elif self.turn == "robot":
-                                print(f"robot move {data}")
-                                self.board=self.add_puck_to_column(self.board,int(data))
-                                self.print_board(self.board)
+                                if self.turn == "player":
+                                    self.board=self.add_puck_to_column(self.board,int(data))
+                                    self.print_board(self.board)
+                                    board = ai.encrypt(self.board, self.side)
+                                    column, minimax_score = ai.minimax(board, 5, -math.inf, math.inf, True)
+                                    self.board = ai.dencrypt(board, self.side)
+                                    self.arm.play_gate(column, self.set_magnet)
+                                    print(f"AI move {column}")
+                                elif self.turn == "robot":
+                                    print(f"robot move {data}")
+                                    self.board=self.add_puck_to_column(self.board,int(data))
+                                    self.print_board(self.board)
 
-                            self.change_sides()
-                            self.change_turn()
-                            # self.save_game(self.board)
+                                self.change_sides()
+                                self.change_turn()
+
+                                if(ai.winning_move(ai.encrypt(self.board, self.side), 1) == True or ai.winning_move(ai.encrypt(self.board, self.side), 2) == True):
+                                    print("GAME FINITO")
+                                    board = ai.encrypt(self.board, self.side)
+                                    board = ai.get_completed_game_board(board)
+                                    self.board = ai.dencrypt(board, self.side)
+                                    self.arm.end_game()
+                                    self.set_arm_torque(False)
+                                # self.save_game(self.board)
         except KeyboardInterrupt:
             print("Exiting...")
         finally:
