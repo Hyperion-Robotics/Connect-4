@@ -1,4 +1,3 @@
-import numpy as np
 import json
 import math
 import serial
@@ -9,7 +8,7 @@ import armControl as arm
 from armControl import ROBOTIC_ARM
 from datetime import datetime
 from tkinter import filedialog
-import subprocess
+from time import sleep
 import rclpy
   
 
@@ -47,6 +46,7 @@ class Connect4:
         self.after_ids=[]
         self.armTorque=True
         self.magnetState=False
+        self.game_has_started = False
 
         self.UpdateFromJSON()
 
@@ -54,7 +54,13 @@ class Connect4:
 
         Serial_thread.start()
 
+        
         self.arm = ROBOTIC_ARM()
+
+        
+        self.is_loaded = False
+        self.loaded_counter = 0
+        self.loaded = 0
 
 
 
@@ -127,10 +133,9 @@ class Connect4:
         self.timestamp = datetime.now().strftime('%d_%H_%M')
         self.board=[[0 for _ in range(6)] for l in range(7)]
         self.create_game_frame(self.board)
-        self.set_arm_torque(True)
-        self.arm.move_to_pos("home")
-        self.arm.wake_up()
-        self.arm.start_game()
+        self.game_has_started = True
+        
+
 
     def create_game_frame(self,board):
         self.clear_frame()
@@ -213,10 +218,12 @@ class Connect4:
         self.current_frame = "settings"
 
         # Create the buttons and arrange them vertically
-        button1 = tk.Button(self.frame, text=self.settingName[0], command=lambda: self.toggleSetting(1), bg=self.settingStatus[0], fg="white", font=('DejaVu Sans', 30), width=20, height=3)
-        button2 = tk.Button(self.frame, text=self.settingName[1], command=lambda: self.toggleSetting(2), bg=self.settingStatus[1], fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        # button1 = tk.Button(self.frame, text=self.settingName[0], command=lambda: self.toggleSetting(1), bg=self.settingStatus[0], fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        # button2 = tk.Button(self.frame, text=self.settingName[1], command=lambda: self.toggleSetting(2), bg=self.settingStatus[1], fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         
         # Fixing the command functions for the buttons
+        button1 = tk.Button(self.frame, text="Place Holder", command= self.button_pressed, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button2 = tk.Button(self.frame, text="Loader", command=self.create_loader_menu, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         button3 = tk.Button(self.frame, text="Toggle Arm\nTorque", command= self.toggle_arm_torque, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         button4 = tk.Button(self.frame, text="Test IR Gates", command=self.create_ir_test_menu, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
         button5 = tk.Button(self.frame, text="Test Arm\nPositions", command=self.create_arm_menu, bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
@@ -241,6 +248,31 @@ class Connect4:
         self.frame.grid_rowconfigure(3, weight=1)  # Row for the fourth button
         self.frame.grid_columnconfigure(0, weight=1)  # First column for buttons
         self.frame.grid_columnconfigure(1, weight=1)  # Second column for buttons
+
+    def create_loader_menu(self):
+        self.clear_frame()
+        self.current_frame = "power_menu"
+
+        # Create the buttons and arrange them vertically
+        button1 = tk.Button(self.frame, text="Up One", command=lambda:self.move_loader("up"), bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button2 = tk.Button(self.frame, text="Down One", command=lambda: self.move_loader("down"), bg="orange", fg="white", font=('DejaVu Sans', 30), width=20,  height=3)
+        button3 = tk.Button(self.frame, text="Up Full", command=lambda:self.move_loader_full("up"), bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button4 = tk.Button(self.frame, text="Down Full", command=lambda:self.move_loader_full("down"), bg="orange", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+        button5 = tk.Button(self.frame, text="Back", command=self.create_settings_frame, bg="#a6a2a2", fg="white", font=('DejaVu Sans', 30), width=20, height=3)
+
+        # Place the buttons in separate rows without expanding to fill the row
+        button1.grid(row=0, column=0, padx=10, pady=10)
+        button2.grid(row=0, column=1, padx=10, pady=10)  
+        button3.grid(row=1, column=0, padx=10, pady=10)  
+        button4.grid(row=1, column=1, padx=10, pady=10)
+        button5.grid(row=2, column=1, padx=10, pady=10)  
+
+        # Configure the grid layout within the frame to center content
+        self.frame.grid_rowconfigure(0, weight=1)  # Row for the first button
+        self.frame.grid_rowconfigure(1, weight=1)  # Row for the second button
+        self.frame.grid_rowconfigure(2, weight=1)  # Row for the second button
+        self.frame.grid_columnconfigure(0, weight=1)  # Single column for buttons
+        self.frame.grid_columnconfigure(1, weight=1)  # Single column for buttons
 
     def create_power_menu(self):
         self.clear_frame()
@@ -431,26 +463,37 @@ class Connect4:
 
     def toggle_pumps(self):  #  For testing buttons
         print("Pumps toggled")
-        cmd = "1,2,"
+        hex=0xA3
+        self.ser.write(bytes([hex]))
 
-        self.ser.write(cmd.encode('utf-8'))
     
     def set_magnet(self, state):  #  For testing buttons
         print("Pumps toggled")
         if state:
-            cmd = "1,1,"
+            hex=0xA2
         else:
-            cmd = "1,0,"
-        self.ser.write(cmd.encode('utf-8'))
+            hex=0xA1
+        self.ser.write(bytes([hex]))
+   
+    def move_loader(self,action):
+        if action=="up":
+            hex=0xA4
+            self.loaded += 1
+        elif action=="down":
+            hex=0xA5
+            self.loaded -= 1
+        self.ser.write(bytes([hex]))
 
-    @staticmethod
-    def static_set_magnet(self, state):  #  For testing buttons
-        print("Pumps toggled")
-        if state:
-            cmd = "1,1,"
-        else:
-            cmd = "1,0,"
-        self.ser.write(cmd.encode('utf-8'))
+    def move_loader_full(self,action):
+        if action=="up":
+            hex=0xA6
+        elif action=="down":
+            hex=0xA7
+        self.ser.write(bytes([hex]))
+
+    def clear_gates(self):
+        hex=0xA8
+        self.ser.write(bytes([hex]))    
 
     def toggle_arm_torque(self):
         if self.armTorque:
@@ -553,6 +596,9 @@ class Connect4:
         filename=self.timestamp
         with open(filename+".txt", "w") as file:
             file.write(save)
+        
+        # while(self.loaded != 0):
+        #     self.move_loader("down")
 
     def board_to_string(self, board):
         # Initialize an empty string to accumulate the result
@@ -608,42 +654,83 @@ class Connect4:
         self.root.quit()  # Exits the Tkinter main loop
         self.root.destroy()  # Destroys the main window, freeing up resources
 
+    def clear_board(self):
+        self.board = [[0 for _ in range(6)] for l in range(7)]
+
+    def arm_menu(self):
+        if self.game_has_started == True:
+                self.set_arm_torque(True)
+                self.arm.move_to_pos("home")
+                self.arm.wake_up()
+                self.arm.start_game() 
+                self.game_has_started = False
+                self.clear_gates()
+        # elif self.game_stopped:
+        #     self.clear_board()
+        #     self.arm.end_game()
+        #     self.set_arm_torque(False)
+        #     self.game_stopped = False
 
     def read_Serial(self):
         try:
+            self.ser.write(bytes([0xB1]))
             while True:
+                self.arm_menu()
                 # print("here")
                 if self.ser.in_waiting > 0:  # Check if there is data waiting in the buffer
-                    msg = self.ser.readline().decode('utf-8').rstrip()  # Read the data and decode it
-                    print(msg)  # Print the data to the terminal
-                    index,data=msg.split(",")
-                    if index=="1":
-                        print(data)
-                        if self.current_frame=="game":
-                                if self.turn == "player":
-                                    self.board=self.add_puck_to_column(self.board,int(data))
-                                    self.print_board(self.board)
-                                    board = ai.encrypt(self.board, self.side)
-                                    column, minimax_score = ai.minimax(board, 5, -math.inf, math.inf, True)
-                                    self.board = ai.dencrypt(board, self.side)
-                                    self.arm.play_gate(column, self.set_magnet)
-                                    print(f"AI move {column}")
-                                elif self.turn == "robot":
-                                    print(f"robot move {data}")
-                                    self.board=self.add_puck_to_column(self.board,int(data))
-                                    self.print_board(self.board)
+                    msg = self.ser.read(1)  # Read the data and decode it
+                    self.ser.flushInput()
+                    print(f"From esp32: {msg}")  # Print the data to the terminal
+                    if msg == b'\xff':  # Check if the byte is 0xff
+                        print("bullshit msg. Ignoring")
+                        continue
+                    else:
+                        gate = int.from_bytes(msg, byteorder='big')  # or 'little'
+                        if gate>=1 and gate <=7 :
+                            print(f"Gate {gate} triggered")
+                            if self.current_frame=="game":
+                                    
 
-                                self.change_sides()
-                                self.change_turn()
+                                    if self.turn == "player":
+                                        if self.loaded_counter%2 == 0:
+                                            self.move_loader("up")
+                                        self.board=self.add_puck_to_column(self.board,int(gate))
+                                        self.print_board(self.board)
+                                        board = ai.encrypt(self.board, self.side)
+                                        column, minimax_score = ai.minimax(board, 5, -math.inf, math.inf, True)
+                                        if column is not None:
+                                            self.loaded_counter = (self.loaded_counter + 1)%2
+                                            self.board = ai.dencrypt(board, self.side)
+                                            arm_thread=threading.Thread(target=self.arm.play_gate, args=(column, self.set_magnet))
+                                            arm_thread.start()
+                                            print(f"AI move {column}")
+                                    elif self.turn == "robot":
+                                        print(f"robot move {gate}")
+                                        self.board=self.add_puck_to_column(self.board,int(gate))
+                                        self.print_board(self.board)
 
-                                if(ai.winning_move(ai.encrypt(self.board, self.side), 1) == True or ai.winning_move(ai.encrypt(self.board, self.side), 2) == True):
-                                    print("GAME FINITO")
-                                    board = ai.encrypt(self.board, self.side)
-                                    board = ai.get_completed_game_board(board)
-                                    self.board = ai.dencrypt(board, self.side)
-                                    self.arm.end_game()
-                                    self.set_arm_torque(False)
-                                # self.save_game(self.board)
+                                    self.change_sides()
+                                    self.change_turn()
+
+                                    if(ai.winning_move(ai.encrypt(self.board, self.side), 1) == True or ai.winning_move(ai.encrypt(self.board, self.side), 2) == True):
+                                        print("GAME FINITO")
+                                        board = ai.encrypt(self.board, self.side)
+                                        board = ai.get_completed_game_board(board)
+                                        self.board = ai.dencrypt(board, self.side)
+                                        self.arm.end_game()
+                                        self.set_arm_torque(False)
+                                        load_counter = 0
+                                        for col in range(7):
+                                            for row in range(6):
+                                                if self.board[col][row] == 'B':
+                                                    load_counter +=1
+
+                                        for repeats in range(math.ceil(load_counter/2)):
+                                            self.move_loader("down")
+                                        self.loaded = 0
+                                        
+                                    # self.save_game(self.board)
+                sleep(0.015)
         except KeyboardInterrupt:
             print("Exiting...")
         finally:
