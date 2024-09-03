@@ -93,46 +93,71 @@ class ROBOTIC_ARM:
             sys.exit()
         
         home=[-0.003,-1.33,0.68,-0.9,-1.6]
-        middle = [-2.02, -1.49, 0.33, -0.19, -0.06]
-        ingame = [-1.70, -1, -0.54, 1, -0.75]
-
-        gate0 = [-1.70, 0.93, -1.8, 0.8, 0]#ok
-        gate1 = [-1.70, 0.15, -0.4, 0.3, 0]#ok
-        gate2 = [-1.70, 0, -0.54, 1, 0]#ok
-        gate3 = [-1.70, -0.375, 0, 0.7, 0]#ok
-        gate4 = [-1.70, -0.65, 0.3, 0.6, 0]#ok
-        gate5 = [-1.70, -1, 0.61, 0.4, 0]#ok
-        gate6 = [-1.70, -1.2, 0.45, 1, 0]#ok
+        middle = [-2.02, -0.65, 0.33, -0.19, -0.06]
+        ingame = [-1.70, -0.65, -0.54, 1, -0.75]
 
         left_look = [-0.003,-1.33,0.68,-0.9, 0.02] 
         center_look = [-0.003,-1.33,0.68,-0.9, -1.53]
         right_look = [-0.003,-1.33,0.68,-0.9, -3.12]
 
         self.POSITIONS = {
+            "sleep": None,
             "home": home,
             "midle": middle,
             "ingame":ingame,
+            "dick":[0,0,-0.8,0,0],#in your ass :)
 
             "left_look":[-0.003,-1.33,0.68,-0.9, 0.02] ,
             "center_look": [-0.003,-1.33,0.68,-0.9, -1.53],
             "right_look": [-0.003,-1.33,0.68,-0.9, -3.12],
 
-            "gate0": [-1.70, 0.93, -1.8, 0.8, 0],
-            "gate1": [-1.70, 0.15, -0.4, 0.3, 0],
-            "gate2": [-1.70, 0, -0.54, 1, 0],
-            "gate3": [-1.70, -0.375, 0, 0.7, 0],
-            "gate4": [-1.70, -0.65, 0.3, 0.6, 0],
-            "gate5": [-1.70, -1, 0.61, 0.4, 0],
-            "gate6": [-1.70, -1.2, 0.45, 1, 0]
+            # [-1.70, 0.88, -1.8, 0.78, 0.5],
+            # [-1.70, 0.15, -0.5,    0.4, 0.05],
+            # [-1.70, -0.19, 0.06,   0.05, 0.05],
+            # [-1.70, -0.3, -0.11,   0.8, 0.05],
+            # [-1.70,-0.28,-0.4,     1.545, 0.8],
+            # [-1.70,-0.43,-0.355,   1.76, 0.05],
+            # [-1.61, -0.67, -0.23,  1.85, 0.05],
+
+
+
+            "gate0": [-1.70, 0.425, -0.79, 0.17, 0.004601942375302315],
+            "gate1": [-1.70, 0.15, -0.5,   0.4, -0.015339808538556099],
+            "gate2": [-1.70, -0.19, 0.06,  0.05, -0.019941750913858414],
+            "gate3": [-1.70, -0.3, -0.11,  0.8, 0.02454369328916073],
+            "gate4": [-1.70,-0.28,-0.4,    1.545, 0.003067961661145091],
+            "gate5": [-1.70,-0.43,-0.355,  1.76, 0.006135923322290182],
+            "gate6": [-1.61, -0.67, -0.23, 1.85, 0.003067961661145091],
+
+            "push0": -1.47,
+            "push1": -1.46,
+            "push2": -1.46,
+            "push3": -1.455,
+            "push4": -1.45,
+            "push5": -1.45,
+            "push6": -1.45,
+
+            "loadmidle":[1.3, -1.64, 0.96, 0.62, -1.51],
+
+            "loader0": [0.89, -1.51, 1.03, 0.48, -1.51],
+            "loadpush0": [0.89, -1.71, 1.25, 0.44, -1.5],
+            "loader1": [1.48, -1.66, 0.94, 0.69, -1.51],
+            "loadpush1": [1.49, -1.81, 1.16,0.69, -1.51]
+
         }
-        self.GATES = [gate0, gate1, gate2, gate3, gate4, gate5, gate6]
         self.head = [left_look, center_look, right_look]
 
-        self.last_moved_to = self.POSITIONS["home"]
+        self.last_moved_to = self.POSITIONS["sleep"]
 
         self.servos = ["waist", "shoulder", "elbow", "wrist_angle", "wrist_rotate"]
 
         self.in_game = False
+
+        self.is_loaded = False
+        self.loaded_counter = 0
+
+        self.gates_to_play = []
+        self.avilable = True
 
     def move(self,id, pos):
         self.bot.arm.set_single_joint_position(joint_name=self.servos[id] , position=pos)
@@ -143,6 +168,8 @@ class ROBOTIC_ARM:
             self.last_moved_to = self.POSITIONS[pos]
         else:
             print("I AM ALREADY AT THAT POSITION")
+
+    
 
     
     def hibernation_mode(self): #the potition where the torque is closed so that the servos can rest alitle
@@ -161,7 +188,7 @@ class ROBOTIC_ARM:
         self.last_moved_to = self.POSITIONS["home"]
 
     def wake_up(self):
-        if  self.last_moved_to == self.POSITIONS["home"]:
+        if self.last_moved_to == self.POSITIONS["home"]:
             self.move_to_pos("home")
             self.move_to_pos("right_look")
             sleep(0.4)
@@ -172,7 +199,11 @@ class ROBOTIC_ARM:
             self.last_moved_to = self.POSITIONS["home"]
 
     def start_game(self):
-        if self.last_moved_to == self.POSITIONS["home"]:
+        if self.last_moved_to == self.POSITIONS["sleep"]:
+            self.bot.arm.set_joint_positions(self.POSITIONS["home"])
+            self.bot.arm.set_joint_positions(self.POSITIONS["midle"])
+            self.bot.arm.set_joint_positions(self.POSITIONS["ingame"])
+        elif self.last_moved_to == self.POSITIONS["home"]:
             self.bot.arm.set_joint_positions(self.POSITIONS["midle"])
             self.bot.arm.set_joint_positions(self.POSITIONS["ingame"])
         elif self.last_moved_to == self.POSITIONS["midle"]:
@@ -181,96 +212,103 @@ class ROBOTIC_ARM:
         self.in_game = True
         
 
-    def play_gate(self,id:int):
-        self.bot.arm.set_joint_positions(self.GATES[id])
+    def play_gate(self, id:int, magnets = None):
+        print("thread started")
+        self.gates_to_play.append(id)
+
+        if magnets is not None:
+            self.reload(magnets)
+
+        while(not self.avilable):
+            sleep(0.05)
+
+        print("Arm available")
+
+        self.avilable = False
+
+        id = self.gates_to_play.pop(0)
+
+        print(f"Dropping at gate {id}")
+
+        self.bot.arm.set_joint_positions(self.POSITIONS[f"gate{id}"])
         sleep(0.2)
-        self.bot.arm.set_single_joint_position(joint_name=self.servos[0] , position=-1.53)
+        self.move(0, self.POSITIONS[f"push{id}"])
         self.last_moved_to = self.POSITIONS[f"gate{id}"]
+        if magnets is not None:
+            magnets(False)
+        self.move(0, -1.7)
+        print("closed magnet")
+        self.move_to_pos("ingame")
+        print("Move done")
+        self.avilable = True
+        self.is_loaded = False
 
     def end_game(self):
-        self.move_to_pos("midle")
-        self.move_to_pos("home")
-        self.hibernation_mode()
-        self.in_game = False
-        sleep(0.3)
+        if self.in_game:
+            self.move_to_pos("midle")
+            self.move_to_pos("home")
+            self.hibernation_mode()
+            self.in_game = False
+            sleep(0.3)
 
     def arm_is_playing(self):
         return self.in_game
+    
+    def reload(self, magnets):
+        if(self.is_loaded == False):
+            magnets(True)
+            self.move_to_pos(f"loadmidle")
+            self.move_to_pos(f"loader{self.loaded_counter}")
+            self.move_to_pos(f"loadpush{self.loaded_counter}")
+            self.move_to_pos(f"loader{self.loaded_counter}")
+            self.move_to_pos("ingame")
+            self.loaded_counter = (self.loaded_counter + 1)%2
+            if self.loaded_counter == 0:
+                print("move up the reloader to reveal the next pieces")
+            self.is_loaded = True
+        else:
+            print("I AM ALREADY LOADED")
 
 
 
 
 
-# def main():
-
-#     # joints=[0,0,0,0,0]
-
-#     # bot.arm.set_ee_pose_components(x=0.3, z=0.2)
-#     # bot.arm.set_single_joint_position(joint_name='waist', position=np.pi/2.0)
-#     # bot.gripper.release()
-#     # bot.arm.set_ee_cartesian_trajectory(x=0.1, z=-0.16)
-#     # bot.gripper.grasp()
-#     # bot.arm.set_ee_cartesian_trajectory(x=-0.1, z=0.16)
-#     # bot.arm.set_single_joint_position(joint_name='waist', position=-np.pi/2.0)
-#     # bot.arm.set_ee_cartesian_trajectory(pitch=1.5)
-#     # bot.arm.set_ee_cartesian_trajectory(pitch=-1.5)
-#     # bot.arm.set_single_joint_position(joint_name='waist', position=np.pi/2.0)
-#     # bot.arm.set_ee_cartesian_trajectory(x=0.1, z=-0.16)
-#     # bot.gripper.release()
-#     # bot.arm.set_ee_cartesian_trajectory(x=-0.1, z=0.16)
-#     # bot.arm.go_to_home_pose()
-#     # bot.arm.go_to_sleep_pose()
 
 
-#     # bot.arm.go_to_home_pose()
-#     # sleep(1)
-#     # bot.arm.set_single_joint_position(joint_name='elbow', position=0.32)
-#     # # sleep(0.5)
-#     # bot.arm.set_single_joint_position(joint_name='wrist_angle', position=-0.02)
-#     # # sleep(0.5)
-#     # bot.arm.set_single_joint_position(joint_name='wrist_rotate', position=-1.6)
+def main():
+    arm = ROBOTIC_ARM()
+    arm.move_to_pos("home")
+    # arm.move_to_pos("midle")
+    # arm.move_to_pos("ingame")
+    arm.start_game()
+    # arm.move_to_pos("loadmidle")
+    # arm.move_to_pos("loader1")
+    # arm.move_to_pos("loadpush1")
+    # while(True):
+        # id = 0
 
+    arm.move_to_pos("ingame")
+    arm.play_gate(1)
 
+        # a = int(input("gate:"))
 
-#     # sleep(0.5)
-#     # bot.gripper.grasp()
-#     # sleep(1)
-#     # bot.gripper.release()
+        # if 0<=a<=6:
+        #     id = a
+        #     arm.move_to_pos(f"gate{id}")
+        #     servo = 0
 
-#     # for i in range(7):
-#     #     print(bot.arm.set_joint_positions(GATES[6-i]))
-#     #     sleep(5)
-#     print(bot.arm.set_joint_positions(middle))
-#     # print(bot.arm.set_joint_positions(transcaction))
-#     # print(bot.arm.set_joint_positions(gate6))
-#     # input()
-#     # print(bot.arm.set_joint_positions(transcaction))
+        #     # servo = int(input("motttor: "))
+        #     # radians = float(input("rsdians: "))
+        #     # arm.move(servo, radians)
+        #     input()
+        #     # arm.move_to_pos("ingame")
+        #     while(0<= servo <= 4):
+        #         servo = int(input("motttor: "))
+        #         radians = float(input("rsdians: "))
+        #         arm.move(servo, radians)
+        # # else:
+        # #     break
+  
 
-#     # print(bot.arm.set_joint_positions(gate5))
-#     # input()
-#     print(bot.arm.set_joint_positions(transcaction))
-
-
-#     # print(bot.arm.set_joint_positions(transcaction))
-#     # print(bot.arm.set_joint_positions(middle))
-#     # print(bot.arm.set_joint_positions(Home))
-
-#     for i in range(7):
-#         print(bot.arm.set_joint_positions(GATES[i]))
-#         print(bot.arm.set_single_joint_position(joint_name='waist', position=-1.50))
-#         input()
-#         print(bot.arm.set_joint_positions(transcaction))
-#         input()
-
-#     print(bot.arm.set_joint_positions(middle))
-#     print(bot.arm.set_joint_positions(Home))
-
-
-
-#     bot.arm.go_to_sleep_pose()
-
-#     robot_shutdown()
-
-
-# if __name__ == '__main__':
-#     main()
+if __name__ == '__main__':
+    main()
