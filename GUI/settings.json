@@ -1,14 +1,6 @@
 [
   {
-    "setting": "End Effector\nSensor",
+    "setting": "Show Game\nScreen",
     "status": "green"
-  },
-  {
-    "setting": "Save After\nEvery Move",
-    "status": "green"
-  },
-  {
-    "setting": "Player Side",
-    "status": "red"
   }
 ]
