@@ -1,35 +1,38 @@
-#include <Wire.h>
-#include <VL53L0X.h>
 
-VL53L0X sensor;
-
-
-const int gate1pin = 34;  
-const int gate2pin = 32;  
-const int gate3pin = 35;  
-const int gate4pin = 33;  
-const int gate5pin = 25;  
-const int gate6pin = 26;  
-const int gate7pin = 27;  
-const int pumpPin = 19;
-const int ledPin = 18;
+// const int gate1pin = 28;  
+// const int gate2pin = 27;  
+// const int gate3pin = 26;  
+// const int gate4pin = 22;  
+// const int gate5pin = 20;  
+// const int gate6pin = 21;  
+// const int gate7pin = 19;  
+const int gate1pin = 19;  
+const int gate2pin = 21;  
+const int gate3pin = 20;  
+const int gate4pin = 22;  
+const int gate5pin = 26;  
+const int gate6pin = 27;  
+const int gate7pin = 28;  
+const int pumpPin = 14;
+const int ledPin = 13;
+const int stepPin=17;
+const int dirPin=18;
 
 bool pumpState = false;
 
-String receivedCommand;
-int recieved_status = 0;
-int commands[8];
-char data[20];
+byte receivedHex;
+bool recieved_status = false;
+byte hexGate;
 
 volatile int current_gate=0;
 int last_gate=0;
 volatile long last_gate_timestamp=0;
 
-int tofValue=0;  // value read from the pot
+volatile int gateCounters[]={0,0,0,0,0,0,0};
 
 void setup() {
   // Initialize serial communications at 115200 bps:
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   // Set the gate pins as input:
   pinMode(gate1pin, INPUT);
@@ -41,6 +44,8 @@ void setup() {
   pinMode(gate7pin, INPUT);
   pinMode(pumpPin, OUTPUT);
   pinMode(ledPin, OUTPUT);
+  pinMode(stepPin,OUTPUT);
+  pinMode(dirPin,OUTPUT);
 
 
   // Attach interrupts to the gate pins:
@@ -52,30 +57,48 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(gate6pin), gate6Intr, RISING);
   attachInterrupt(digitalPinToInterrupt(gate7pin), gate7Intr, RISING);
 
-  // Wire.begin();
-  // sensor.setTimeout(500);
-  // if (!sensor.init())
-  // {
-  //   Serial.println("Failed to detect and initialize sensor!");
-  //   while (1) {}
-  // }
+  Serial.flush();
 
-  // sensor.startContinuous();
 
 }
 
 void loop() {
   readSerialPort();
-  Serial.flush();
-    if(recieved_status==1){
-      switch (commands[0]){
-        case 1:
+    if(recieved_status==true){
+      switch (receivedHex){
+        case 0xB1:
+          Serial.write(0xB1);
+          break;
+        case 0xA1:
           // Serial.println("Got data");
-          togglePumps(commands[1]);
+          togglePumps(0);
+          break;
+        case 0xA2:
+          // Serial.println("Got data");
+          togglePumps(1);
+          break;
+        case 0xA3:
+          // Serial.println("Got data");
+          togglePumps(2);
+          break;
+        case 0xA4:
+          stepperRotate(1,475);
+          break;
+        case 0xA5:
+          stepperRotate(2,475);
+          break;
+        case 0xA6:
+          stepperRotate(1,475*11);
+          break;
+        case 0xA7:
+          stepperRotate(2,475*11);
+          break;
+        case 0xA8:
+          for(int i=0;i<7;i++)gateCounters[i]=0;
           break;
           
       }
-      recieved_status=0;
+      recieved_status=false;
     }
 
 
@@ -87,9 +110,10 @@ void loop() {
     else{
       // Serial.print("Gate ");
       // Serial.print(current_gate);
-      // Serial.println(" triggered");
-      Serial.print("1,");
-      Serial.println(current_gate);
+      // Serial.println(" triggered"); 
+      gateCounters[current_gate-1]++;
+      Serial.flush();
+      Serial.write(current_gate);
   }
 
   }
@@ -112,38 +136,52 @@ void loop() {
 }
 
 void gate1Intr() {
+  if(gateCounters[0]<6){
   current_gate=1;
   last_gate_timestamp=millis();
+  }
 }
 
 void gate2Intr() {
+  if(gateCounters[1]<6){
   current_gate=2;
   last_gate_timestamp=millis();
+  }
 }
 
 void gate3Intr() {
+  if(gateCounters[2]<6){
   current_gate=3;
   last_gate_timestamp=millis();
+  }
 }
 
 void gate4Intr() {
+  if(gateCounters[3]<6){
   current_gate=4;
   last_gate_timestamp=millis();
+  }
 }
 
 void gate5Intr() {
+  if(gateCounters[4]<6){
   current_gate=5;
   last_gate_timestamp=millis();
+  }
 }
 
 void gate6Intr() {
+  if(gateCounters[5]<6){
   current_gate=6;
   last_gate_timestamp=millis();
+  }
 }
 
 void gate7Intr() {
+  if(gateCounters[6]<6){
   current_gate=7;
   last_gate_timestamp=millis();
+  }
 }
 
 void togglePumps(int mode){
@@ -175,63 +213,28 @@ void togglePumps(int mode){
   }
 }
 
-void readSerialPort(){
-    int i=0;
-    int counter=0;
-    int k=0;
-    int command=0;
- 
-    
-    if (Serial.available()) {
-        for(int j=0; j<5; j++){
-            commands[j]=-1;
-        }
-        delay(10);
-        receivedCommand = "";
-        while (Serial.available() > 0) {
-            data[i] = (char)Serial.read();
-            // mporei na einai megalo to mnm mexri to \n
-            i++;   
-            if (i>=30){
-                break;
-            } 
-            delay(1);   
-        }   
-        recieved_status = 1;
-        Serial.flush();
-        delay(20);
-        for(i=0; i<20; i++){
-            if(data[i]=='/' || data[i]==','){
-                switch(counter){
-                    case 1:
-                        command=data[i-counter]-'0';
-                        commands[k]=command;
-                        break;
-                    case 2:
-                        command=(data[i-counter]-'0')*10 + (data[i-counter+1]-'0');
-                        commands[k]=command;
-                        break;
-                    case 3:
-                        command=(data[i-counter]-'0')*100 + (data[i-counter+1]-'0')*10 + (data[i-counter+2]-'0');
-                        commands[k]=command;
-                        break;
-                    case 4:
-                        command=(data[i-counter]-'0')*1000 + (data[i-counter+1]-'0')*100 + (data[i-counter+2]-'0')*10 + (data[i-counter+3]-'0');
-                        commands[k]=command;
-                        break;    
-                    case 5:
-                        command=(data[i-counter]-'0')*10000+(data[i-counter+1]-'0')*1000 + (data[i-counter+2]-'0')*100 + (data[i-counter+3]-'0')*10 + (data[i-counter+4]-'0');
-                        commands[k]=command;
-                        break;  
-                    }
-                counter=0;
-                command=0;
-                k++;
-            }
-            else{
-                counter++;      
-            }
-        }
+void stepperRotate(int dir, int steps) {
+  if(dir==1)digitalWrite(dirPin,HIGH);
+  else if(dir==2)digitalWrite(dirPin,LOW);
+  for (int i = 0; i < steps; i++) {
+    digitalWrite(stepPin, HIGH);
+    delay(1); // Adjust this value to control the speed of the motor
+    digitalWrite(stepPin, LOW);
+    delay(1); // Adjust this value to control the speed of the motor
+  }
+}
 
-    } 
+void readSerialPort(){
+   if (Serial.available() > 0) {
+    recieved_status=true;
+    // Read the incoming byte
+    receivedHex = Serial.read();
+    
+    // Print the received character to the serial monitor
+    // Serial.print("Received: ");
+    // Serial.print(receivedHex);
+    
+    // Optionally, do something with the received data
+    // For example, toggle an LED or store the value
+  }
 }
