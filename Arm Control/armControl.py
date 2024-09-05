@@ -91,6 +91,10 @@ class ROBOTIC_ARM:
             )
             robot_shutdown()
             sys.exit()
+
+
+        self.moving_time = 2.0
+        self.accel_time = 0.3
         
         home=[-0.003,-1.33,0.68,-0.9,-1.6]
         middle = [-2.02, -0.65, 0.33, -0.19, -0.06]
@@ -105,19 +109,19 @@ class ROBOTIC_ARM:
             "home": home,
             "midle": middle,
             "ingame":ingame,
-            "dick":[0,0,-0.8,0,0],#in your ass :)
+            "no no square":[0,0,-0.8,0,0],#in your ass :)
 
             "left_look":[-0.003,-1.33,0.68,-0.9, 0.02] ,
             "center_look": [-0.003,-1.33,0.68,-0.9, -1.53],
             "right_look": [-0.003,-1.33,0.68,-0.9, -3.12],
 
-            # [-1.70, 0.88, -1.8, 0.78, 0.5],
-            # [-1.70, 0.15, -0.5,    0.4, 0.05],
-            # [-1.70, -0.19, 0.06,   0.05, 0.05],
-            # [-1.70, -0.3, -0.11,   0.8, 0.05],
-            # [-1.70,-0.28,-0.4,     1.545, 0.8],
-            # [-1.70,-0.43,-0.355,   1.76, 0.05],
-            # [-1.61, -0.67, -0.23,  1.85, 0.05],
+            # [-1.70, 0.425, -0.79, 0.17, 0.004601942375302315],
+            # [-1.70, 0.15, -0.5,   0.4, -0.015339808538556099],
+            # [-1.70, -0.19, 0.06,  0.05, -0.019941750913858414]
+            # [-1.70, -0.3, -0.11,  0.8, 0.02454369328916073],
+            # [-1.70,-0.28,-0.4,    1.545, 0.003067961661145091]
+            # [-1.70,-0.43,-0.355,  1.76, 0.006135923322290182],
+            # [-1.61, -0.67, -0.23, 1.85, 0.003067961661145091],
 
 
 
@@ -159,68 +163,75 @@ class ROBOTIC_ARM:
         self.gates_to_play = []
         self.avilable = True
 
-    def move(self,id, pos):
-        self.bot.arm.set_single_joint_position(joint_name=self.servos[id] , position=pos)
-
-    def move_to_pos(self,pos):
-        if(self.last_moved_to != self.POSITIONS[pos]):
-            self.bot.arm.set_joint_positions(self.POSITIONS[pos])
-            self.last_moved_to = self.POSITIONS[pos]
-        else:
-            print("I AM ALREADY AT THAT POSITION")
-
+        self.move_counter=0
     
+    def start_game(self):
+            if self.last_moved_to == self.POSITIONS["sleep"]:
+                self.move_to_pos("home", 1, 0.4)
+                self.move_to_pos("midle", 1, 0.4)
+                self.move_to_pos("ingame", 1, 0.4)
+            elif self.last_moved_to == self.POSITIONS["home"]:
+                self.move_to_pos("midle", 1, 0.4)
+                self.move_to_pos("ingame", 1, 0.4)
+            elif self.last_moved_to == self.POSITIONS["midle"]:
+                self.move_to_pos("ingame", 1, 0.4)
+            self.last_moved_to = self.POSITIONS["ingame"]
+            self.in_game = True
 
+    def move(self,id, pos, duration = 2, accel_duration = 0.3):
+        self.moving_time = duration
+        self.accel_time = accel_duration
+
+        self.bot.arm.set_single_joint_position(joint_name=self.servos[id] , position=pos, moving_time = duration, accel_time = accel_duration)
+
+    def move_to_pos(self, pos, duration: float = 2.0, accel_duration: float = 0.3):
+        duration = float(duration)
+        accel_duration = float(accel_duration)
+        self.move_counter+=1
+
+        if(accel_duration > duration/2):
+            str_to_deliver = ""
+            for i in range(100):
+                str_to_deliver+="!"
+            str_to_deliver+="\nilligal MOVE"
+            print(str_to_deliver)
+
+        if(self.last_moved_to != self.POSITIONS[pos]):
+            self.last_moved_to = self.POSITIONS[pos]
+            print(self.POSITIONS[pos])
+            print(self.bot.arm.set_joint_positions(self.POSITIONS[pos], moving_time = duration, accel_time = accel_duration))
+        else:
+
+            print("I AM ALREADY AT THAT POSITION")
     
     def hibernation_mode(self): #the potition where the torque is closed so that the servos can rest alitle
         if self.last_moved_to == self.POSITIONS["home"]:
             self.bot.arm.go_to_sleep_pose()
             pass##torn off torque
         elif self.last_moved_to == self.POSITIONS["midle"]:
-            self.bot.arm.set_joint_positions(self.POSITIONS["home"])
+            self.move_to_pos("home", 0.5, 0.2)
             self.bot.arm.go_to_sleep_pose()
             pass##torn off torque
         elif self.last_moved_to == self.POSITIONS["ingame"]:
-            self.bot.arm.set_joint_positions(self.POSITIONS["midle"])
-            self.bot.arm.set_joint_positions(self.POSITIONS["home"])
+            self.move_to_pos("midle", 0.5, 0.2)
+            self.move_to_pos("home", 0.5, 0.2)
             self.bot.arm.go_to_sleep_pose()
             pass##torn off torque
-        self.last_moved_to = self.POSITIONS["home"]
+        self.last_moved_to = self.POSITIONS["sleep"]
 
-    def wake_up(self):
-        if self.last_moved_to == self.POSITIONS["home"]:
-            self.move_to_pos("home")
-            self.move_to_pos("right_look")
-            sleep(0.4)
-            self.move_to_pos("left_look")
-            sleep(0.4)
-            self.move_to_pos("center_look")
-            sleep(0.1)
-            self.last_moved_to = self.POSITIONS["home"]
-
-    def start_game(self):
-        if self.last_moved_to == self.POSITIONS["sleep"]:
-            self.bot.arm.set_joint_positions(self.POSITIONS["home"])
-            self.bot.arm.set_joint_positions(self.POSITIONS["midle"])
-            self.bot.arm.set_joint_positions(self.POSITIONS["ingame"])
-        elif self.last_moved_to == self.POSITIONS["home"]:
-            self.bot.arm.set_joint_positions(self.POSITIONS["midle"])
-            self.bot.arm.set_joint_positions(self.POSITIONS["ingame"])
-        elif self.last_moved_to == self.POSITIONS["midle"]:
-            self.bot.arm.set_joint_positions(self.POSITIONS["ingame"])
-        self.last_moved_to = self.POSITIONS["ingame"]
-        self.in_game = True
         
-
     def play_gate(self, id:int, magnets = None):
-        print("thread started")
+        
         self.gates_to_play.append(id)
+        print("thread started")
+
+        while(not self.avilable ):
+            sleep(0.05)
 
         if magnets is not None:
             self.reload(magnets)
-
-        while(not self.avilable):
-            sleep(0.05)
+        else:
+            self.reload_wanna_be()
 
         print("Arm available")
 
@@ -230,36 +241,35 @@ class ROBOTIC_ARM:
 
         print(f"Dropping at gate {id}")
 
-        self.bot.arm.set_joint_positions(self.POSITIONS[f"gate{id}"])
-        sleep(0.2)
-        self.move(0, self.POSITIONS[f"push{id}"])
+        self.move_to_pos(f"gate{id}")
+        self.move(0, self.POSITIONS[f"push{id}"], 1, 0.5)
         self.last_moved_to = self.POSITIONS[f"gate{id}"]
         if magnets is not None:
             magnets(False)
-        self.move(0, -1.7)
+        self.move(0, -1.7, 1, 0.5)
         print("closed magnet")
-        self.move_to_pos("ingame")
+        self.move_to_pos("ingame", 1, 0.4)
         print("Move done")
         self.avilable = True
         self.is_loaded = False
 
-    def end_game(self):
-        if self.in_game:
+    def end_game(self, forced=False):
+        if self.in_game or forced:
             self.move_to_pos("midle")
             self.move_to_pos("home")
             self.hibernation_mode()
             self.in_game = False
+            self.gates_to_play = []
+            self.loaded_counter = 0
+            self.avilable = True
             sleep(0.3)
-
-    def arm_is_playing(self):
-        return self.in_game
     
     def reload(self, magnets):
         if(self.is_loaded == False):
+            self.move_to_pos(f"loadmidle", 1, 0.4)
+            self.move_to_pos(f"loader{self.loaded_counter}", 0.75, 0.2)
             magnets(True)
-            self.move_to_pos(f"loadmidle")
-            self.move_to_pos(f"loader{self.loaded_counter}")
-            self.move_to_pos(f"loadpush{self.loaded_counter}")
+            self.move_to_pos(f"loadpush{self.loaded_counter}", 0.75, 0.2)
             self.move_to_pos(f"loader{self.loaded_counter}")
             self.move_to_pos("ingame")
             self.loaded_counter = (self.loaded_counter + 1)%2
@@ -269,46 +279,34 @@ class ROBOTIC_ARM:
         else:
             print("I AM ALREADY LOADED")
 
+    def reload_wanna_be(self):
+        if(self.is_loaded == False):
+            self.move_to_pos(f"loadmidle", 1, 0.4)
+            self.move_to_pos(f"loader{self.loaded_counter}", 0.75, 0.2)
+            self.move_to_pos(f"loadpush{self.loaded_counter}", 0.75, 0.2)
+            self.move_to_pos(f"loader{self.loaded_counter}", 0.75, 0.2)
+            self.move_to_pos(f"loader{self.loaded_counter}")
+            # sleep(0.5)
+            self.move_to_pos("ingame")
+            self.loaded_counter = (self.loaded_counter + 1)%2
+            if self.loaded_counter == 0:
+                print("move up the reloader to reveal the next pieces")
+            self.is_loaded = False
+        else:
+            print("I AM ALREADY LOADED")
 
-
-
-
-
+    def __del__(self):
+        del self.bot
+        robot_shutdown()
 
 def main():
     arm = ROBOTIC_ARM()
-    arm.move_to_pos("home")
-    # arm.move_to_pos("midle")
-    # arm.move_to_pos("ingame")
+    
+
     arm.start_game()
-    # arm.move_to_pos("loadmidle")
-    # arm.move_to_pos("loader1")
-    # arm.move_to_pos("loadpush1")
-    # while(True):
-        # id = 0
+    arm.reload_wanna_be()
 
-    arm.move_to_pos("ingame")
-    arm.play_gate(1)
-
-        # a = int(input("gate:"))
-
-        # if 0<=a<=6:
-        #     id = a
-        #     arm.move_to_pos(f"gate{id}")
-        #     servo = 0
-
-        #     # servo = int(input("motttor: "))
-        #     # radians = float(input("rsdians: "))
-        #     # arm.move(servo, radians)
-        #     input()
-        #     # arm.move_to_pos("ingame")
-        #     while(0<= servo <= 4):
-        #         servo = int(input("motttor: "))
-        #         radians = float(input("rsdians: "))
-        #         arm.move(servo, radians)
-        # # else:
-        # #     break
-  
+    arm.end_game()
 
 if __name__ == '__main__':
     main()
