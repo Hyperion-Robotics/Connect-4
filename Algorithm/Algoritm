@@ -80,21 +80,24 @@ def reverse_convert_board(converted_board, player_color):
     
     # Define the reverse conversion mapping based on player_color
     if player_color == "purple":
-        reverse_conversion = {1: 'P', 2: 'B', 3:'Y'}
+        reverse_conversion = {1: 'P', 2: 'B', 3: 'Y'}
     elif player_color == "blue":
-        reverse_conversion = {1: 'B', 2: 'P', 3:'Y'}
+        reverse_conversion = {1: 'B', 2: 'P', 3: 'Y'}
     else:
         raise ValueError("Invalid player color. Must be 'purple' or 'blue'.")
 
-    # Traverse the board and reconvert 1 and 2 based on the mapping
+    # Traverse the board and reconvert 1, 2, and 3 based on the mapping
     for i in range(len(converted_board)):
         for j in range(len(converted_board[0])):
+            # Check if the value is in the reverse_conversion mapping
             if converted_board[i][j] in reverse_conversion:
                 original_board[i][j] = reverse_conversion[converted_board[i][j]]
             else:
-                original_board[i][j] = converted_board[i][j]  # Keep 0s as they are
+                # Keep other values (like 0) as they are
+                original_board[i][j] = converted_board[i][j]  
 
     return original_board
+
 
 def encrypt(board, player_color):
     # print(board)
@@ -173,70 +176,94 @@ def winning_move(board, piece):
         for r in range(3, ROWS):
             if board[r][c] == piece and board[r-1][c-1] == piece and board[r-2][c-2] == piece and board[r-3][c-3] == piece:
                 return True
+    
+    return False
 
 
 # calculating if the current state of the board for player or AI is a win
 def get_completed_game_board(board):
     piece = PLAYER_PIECE
-    # checking horizontal 'windows' of 4 for win
-    for c in range(COLS-3):
+    
+    # Checking horizontal 'windows' of 4 for win
+    for c in range(COLS - 3):
         for r in range(ROWS):
-            if board[r][c] == piece and board[r][c+1] == piece and board[r][c+2] == piece and board[r][c+3] == piece:
-                board[r][c] == CONNECT_4 and board[r][c+1] == CONNECT_4 and board[r][c+2] == CONNECT_4 and board[r][c+3] == CONNECT_4
+            if board[r][c] == piece and board[r][c + 1] == piece and board[r][c + 2] == piece and board[r][c + 3] == piece:
+                board[r][c] = CONNECT_4
+                board[r][c + 1] = CONNECT_4
+                board[r][c + 2] = CONNECT_4
+                board[r][c + 3] = CONNECT_4
                 return board
 
-    # checking vertical 'windows' of 4 for win
+    # Checking vertical 'windows' of 4 for win
     for c in range(COLS):
-        for r in range(ROWS-3):
-            if board[r][c] == piece and board[r+1][c] == piece and board[r+2][c] == piece and board[r+3][c] == piece:
-                board[r][c] == CONNECT_4 and board[r][c+1] == CONNECT_4 and board[r][c+2] == CONNECT_4 and board[r][c+3] == CONNECT_4
+        for r in range(ROWS - 3):
+            if board[r][c] == piece and board[r + 1][c] == piece and board[r + 2][c] == piece and board[r + 3][c] == piece:
+                board[r][c] = CONNECT_4
+                board[r + 1][c] = CONNECT_4
+                board[r + 2][c] = CONNECT_4
+                board[r + 3][c] = CONNECT_4
                 return board
 
-    # checking positively sloped diagonals for win
-    for c in range(COLS-3):
+    # Checking positively sloped diagonals for win
+    for c in range(COLS - 3):
         for r in range(3, ROWS):
-            if board[r][c] == piece and board[r-1][c+1] == piece and board[r-2][c+2] == piece and board[r-3][c+3] == piece:
-                board[r][c] == CONNECT_4 and board[r][c+1] == CONNECT_4 and board[r][c+2] == CONNECT_4 and board[r][c+3] == CONNECT_4
+            if board[r][c] == piece and board[r - 1][c + 1] == piece and board[r - 2][c + 2] == piece and board[r - 3][c + 3] == piece:
+                board[r][c] = CONNECT_4
+                board[r - 1][c + 1] = CONNECT_4
+                board[r - 2][c + 2] = CONNECT_4
+                board[r - 3][c + 3] = CONNECT_4
                 return board
 
-    # checking negatively sloped diagonals for win
-    for c in range(3,COLS):
+    # Checking negatively sloped diagonals for win
+    for c in range(3, COLS):
         for r in range(3, ROWS):
-            if board[r][c] == piece and board[r-1][c-1] == piece and board[r-2][c-2] == piece and board[r-3][c-3] == piece:
-                board[r][c] == CONNECT_4 and board[r][c+1] == CONNECT_4 and board[r][c+2] == CONNECT_4 and board[r][c+3] == CONNECT_4
+            if board[r][c] == piece and board[r - 1][c - 1] == piece and board[r - 2][c - 2] == piece and board[r - 3][c - 3] == piece:
+                board[r][c] = CONNECT_4
+                board[r - 1][c - 1] = CONNECT_4
+                board[r - 2][c - 2] = CONNECT_4
+                board[r - 3][c - 3] = CONNECT_4
                 return board
-            
+
     piece = AI_PIECE
-    # checking horizontal 'windows' of 4 for win
-    for c in range(COLS-3):
+
+    # Repeat the same checks for AI piece
+    for c in range(COLS - 3):
         for r in range(ROWS):
-            if board[r][c] == piece and board[r][c+1] == piece and board[r][c+2] == piece and board[r][c+3] == piece:
-                board[r][c] == CONNECT_4 and board[r][c+1] == CONNECT_4 and board[r][c+2] == CONNECT_4 and board[r][c+3] == CONNECT_4
+            if board[r][c] == piece and board[r][c + 1] == piece and board[r][c + 2] == piece and board[r][c + 3] == piece:
+                board[r][c] = CONNECT_4
+                board[r][c + 1] = CONNECT_4
+                board[r][c + 2] = CONNECT_4
+                board[r][c + 3] = CONNECT_4
                 return board
 
-    # checking vertical 'windows' of 4 for win
     for c in range(COLS):
-        for r in range(ROWS-3):
-            if board[r][c] == piece and board[r+1][c] == piece and board[r+2][c] == piece and board[r+3][c] == piece:
-                board[r][c] == CONNECT_4 and board[r][c+1] == CONNECT_4 and board[r][c+2] == CONNECT_4 and board[r][c+3] == CONNECT_4
+        for r in range(ROWS - 3):
+            if board[r][c] == piece and board[r + 1][c] == piece and board[r + 2][c] == piece and board[r + 3][c] == piece:
+                board[r][c] = CONNECT_4
+                board[r + 1][c] = CONNECT_4
+                board[r + 2][c] = CONNECT_4
+                board[r + 3][c] = CONNECT_4
                 return board
 
-    # checking positively sloped diagonals for win
-    for c in range(COLS-3):
+    for c in range(COLS - 3):
         for r in range(3, ROWS):
-            if board[r][c] == piece and board[r-1][c+1] == piece and board[r-2][c+2] == piece and board[r-3][c+3] == piece:
-                board[r][c] == CONNECT_4 and board[r][c+1] == CONNECT_4 and board[r][c+2] == CONNECT_4 and board[r][c+3] == CONNECT_4
+            if board[r][c] == piece and board[r - 1][c + 1] == piece and board[r - 2][c + 2] == piece and board[r - 3][c + 3] == piece:
+                board[r][c] = CONNECT_4
+                board[r - 1][c + 1] = CONNECT_4
+                board[r - 2][c + 2] = CONNECT_4
+                board[r - 3][c + 3] = CONNECT_4
                 return board
 
-    # checking negatively sloped diagonals for win
-    for c in range(3,COLS):
+    for c in range(3, COLS):
         for r in range(3, ROWS):
-            if board[r][c] == piece and board[r-1][c-1] == piece and board[r-2][c-2] == piece and board[r-3][c-3] == piece:
-                board[r][c] == CONNECT_4 and board[r][c+1] == CONNECT_4 and board[r][c+2] == CONNECT_4 and board[r][c+3] == CONNECT_4
+            if board[r][c] == piece and board[r - 1][c - 1] == piece and board[r - 2][c - 2] == piece and board[r - 3][c - 3] == piece:
+                board[r][c] = CONNECT_4
+                board[r - 1][c - 1] = CONNECT_4
+                board[r - 2][c - 2] = CONNECT_4
+                board[r - 3][c - 3] = CONNECT_4
                 return board
-    
-    return board
-    
+
+    return board 
 
 
 
